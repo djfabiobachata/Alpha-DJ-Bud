@@ -333,3 +333,45 @@ class UpdaterTest(unittest.TestCase):
         with self.assertRaises(updater.UpdateError) as cm:
             updater.install(tempfile.mkdtemp())
         self.assertEqual(cm.exception.code, "notInstalled")
+
+
+class NowPlayingFileTest(unittest.TestCase):
+    def _write(self, db, title, artist, length="03:20"):
+        p = os.path.join(os.path.dirname(db), "NowPlaying.txt")
+        with open(p, "w") as f:
+            f.write("Title: %s\nArtist: %s\nAlbum: X\nTime: %s\n" % (title, artist, length))
+        t = time.time() + 1
+        os.utime(p, (t, t))
+
+    def test_now_playing_file_drives_current_and_ignores_history(self):
+        tmp = tempfile.mkdtemp()
+        os.environ["ALPHA_DJ_BUD_HOME"] = os.path.join(tmp, "home")
+        db = fixture.build(os.path.join(tmp, "MediaLibrary.db"))
+        from alpha_dj_bud.server import AppState
+        st = AppState(db)
+        st.action("playlist", {"id": "F-BACHATA"})
+        self._write(db, "Darte un Beso", "Prince Royce")
+        st.poll()
+        self.assertEqual(st.snapshot()["current"]["id"], "t03")
+        self.assertTrue(st.snapshot()["nowPlayingFile"])
+        # a pre-listen lands in djay history: must NOT change the playing track
+        fixture.add_history(db, "H9", "t05", deck=0)
+        os.utime(db, None)
+        st.poll()
+        self.assertEqual(st.snapshot()["current"]["id"], "t03")
+        # djay moves on air to the next track
+        self._write(db, "Obsesión", "Aventura")
+        st.poll()
+        snap = st.snapshot()
+        self.assertEqual(snap["current"]["id"], "t05")
+        self.assertEqual(snap["brain"]["transitions"], 1)
+
+    def test_unknown_track_is_reported(self):
+        tmp = tempfile.mkdtemp()
+        os.environ["ALPHA_DJ_BUD_HOME"] = os.path.join(tmp, "home")
+        db = fixture.build(os.path.join(tmp, "MediaLibrary.db"))
+        from alpha_dj_bud.server import AppState
+        st = AppState(db)
+        self._write(db, "Not In Library", "Nobody")
+        st.poll()
+        self.assertEqual(st.snapshot()["nowPlayingUnmatched"]["title"], "Not In Library")

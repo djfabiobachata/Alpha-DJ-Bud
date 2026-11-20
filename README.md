@@ -30,7 +30,7 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
    - the ♥ and ✕ you give.
 
    The more sets you play, the more this counts (**CONFIDENCE** meter). **"Learn from djay history"** also learns from sets you played in the past.
-5. **Drag into djay**: drag a suggestion straight onto a djay deck, just like dragging a file from the Finder. Rows with the ⠿ mark have a local file. Streaming tracks (TIDAL, Apple Music...) can't be dragged: load them from djay.
+5. **Drag into djay**: drag a suggestion onto a djay deck — drop it on the deck's **waveform area** (not on the title), just like dragging a file from the Finder. Rows with the ⠿ mark have a local file. Streaming tracks (TIDAL, Apple Music...) can't be dragged: load them from djay.
 6. **MINI window**: the **▣ MINI** button turns the app into a small 360×560 window that **stays on top** of djay. It shows only the genre, the playing track and the suggestions.
 
 <img src="docs/screenshot-mini.png" width="260" alt="MINI mode">

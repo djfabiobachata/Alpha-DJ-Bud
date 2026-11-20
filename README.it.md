@@ -29,7 +29,7 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 
    Più set suoni, più conta questa parte (indicatore **FIDUCIA**). Con **"Impara dalla cronologia djay"** Bud impara anche dai set che hai già suonato in passato.
 5. **Lingua**: l'app è in inglese; in ⚙ Impostazioni → **Lingua** puoi passare a italiano o spagnolo.
-6. **Trascinamento in djay**: trascina un consiglio direttamente su un deck di djay, come faresti con un file dal Finder. Le righe con il segno ⠿ hanno un file locale. I brani in streaming (TIDAL, Apple Music...) non si possono trascinare: caricali da djay.
+6. **Trascinamento in djay**: trascina un consiglio su un deck di djay e rilascialo sulla **forma d'onda** del deck (non sul titolo), come faresti con un file dal Finder. Le righe con il segno ⠿ hanno un file locale. I brani in streaming (TIDAL, Apple Music...) non si possono trascinare: caricali da djay.
 7. **Finestra MINI**: con il pulsante **▣ MINI** l'app diventa una finestrella di 360×560 **sempre in primo piano** sopra djay. Mostra solo il genere, il brano in riproduzione e la lista dei consigli.
 
 <img src="docs/screenshot-mini.png" width="260" alt="Modalità MINI">

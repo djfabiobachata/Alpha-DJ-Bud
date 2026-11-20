@@ -101,8 +101,8 @@ const I18N = {
     "var.25": "Low",
     "var.50": "Medium",
     "var.80": "High",
-    "drag.title": "⠿ drag a track onto a djay deck",
-    "drag.hint": "Drag onto a djay deck to load it",
+    "drag.title": "⠿ drag a track onto the waveform of a djay deck",
+    "drag.hint": "Drag onto the waveform area of a djay deck to load it",
     "drag.noFile": "Streaming or missing file: load it from djay",
     "drag.missing": "File not found (is the drive connected?)",
     "drag.failed": "Couldn't start the drag",
@@ -123,6 +123,7 @@ const I18N = {
     "upd.err.verify": "The new version didn't start: kept the current one",
     "upd.err.failed": "Update failed: kept the current version",
     "drag.notStarted": "The drag didn't start — send this to support",
+    "np.unmatched": "djay is playing \"{title}\", which isn't in djay's library (streaming?)",
   },
 
   it: {
@@ -224,8 +225,8 @@ const I18N = {
     "var.25": "Bassa",
     "var.50": "Media",
     "var.80": "Alta",
-    "drag.title": "⠿ trascina un brano su un deck di djay",
-    "drag.hint": "Trascinalo su un deck di djay per caricarlo",
+    "drag.title": "⠿ trascina un brano sulla forma d'onda di un deck di djay",
+    "drag.hint": "Trascinalo sulla forma d'onda di un deck di djay per caricarlo",
     "drag.noFile": "Brano in streaming o file mancante: caricalo da djay",
     "drag.missing": "File non trovato (il disco è collegato?)",
     "drag.failed": "Impossibile avviare il trascinamento",
@@ -246,6 +247,7 @@ const I18N = {
     "upd.err.verify": "La nuova versione non parte: tengo quella attuale",
     "upd.err.failed": "Aggiornamento non riuscito: tengo la versione attuale",
     "drag.notStarted": "Il trascinamento non è partito — manda questo messaggio",
+    "np.unmatched": "djay sta suonando \"{title}\", che non è nella libreria di djay (streaming?)",
   },
 
   es: {
@@ -347,8 +349,8 @@ const I18N = {
     "var.25": "Baja",
     "var.50": "Media",
     "var.80": "Alta",
-    "drag.title": "⠿ arrastra un tema a un deck de djay",
-    "drag.hint": "Arrástralo a un deck de djay para cargarlo",
+    "drag.title": "⠿ arrastra un tema a la forma de onda de un deck de djay",
+    "drag.hint": "Arrástralo a la forma de onda de un deck de djay para cargarlo",
     "drag.noFile": "Tema en streaming o archivo ausente: cárgalo desde djay",
     "drag.missing": "Archivo no encontrado (¿está conectado el disco?)",
     "drag.failed": "No se pudo iniciar el arrastre",
@@ -369,6 +371,7 @@ const I18N = {
     "upd.err.verify": "La nueva versión no arrancó: se mantiene la actual",
     "upd.err.failed": "La actualización falló: se mantiene la versión actual",
     "drag.notStarted": "El arrastre no empezó — envía este mensaje",
+    "np.unmatched": "djay está sonando \"{title}\", que no está en la biblioteca de djay (¿streaming?)",
   },
 };
 

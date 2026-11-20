@@ -57,6 +57,7 @@ class AppState:
         self.brain = Brain(os.path.join(self.home, "brain.json"))
         self.library = None
         self.version = 0
+        self.np_source = False
         self.update = {"available": False, "latest": None, "error": None, "checkedAt": None,
                        "installing": False}
         self.window = None  # pywebview window, if any
@@ -101,6 +102,8 @@ class AppState:
             self.current_deck = None
             self.last_history_time = 0
             self._history_checked = False
+            self._np_last = None
+            self.np_unmatched = None
             self.shown = []
             self.version += 1
 
@@ -157,6 +160,11 @@ class AppState:
             if self.library is None:
                 return
         changed = self.library.refresh()
+        np_active = self._poll_now_playing()
+        if np_active:
+            if changed:
+                self.version += 1
+            return
         if not changed and self._history_checked:
             return
         self._history_checked = True
@@ -216,6 +224,36 @@ class AppState:
         threading.Timer(1.0, updater.restart, args=(self.home,)).start()
         return {"ok": True, "version": v}
 
+    def _poll_now_playing(self):
+        """djay writes NowPlaying.txt with the track on air. When it exists and
+        is recent, it is the source of truth (history only as fallback)."""
+        mtime, info = self.library.read_now_playing()
+        if mtime is None or time.time() - mtime > 12 * 3600:
+            self.np_source = False
+            return False
+        self.np_source = True
+        key = (info.get("title"), info.get("artist"))
+        if key == self._np_last:
+            return True
+        self._np_last = key
+        tid = self.library.match_now_playing(info, set(self.pool()))
+        if tid:
+            deck = None
+            try:
+                for h in reversed(self.library.history(limit=20)):
+                    if h["track_id"] == tid:
+                        deck = h["deck"]
+                        break
+            except Exception:
+                pass
+            learn = mtime >= self.set_start or self.current_id is not None
+            self.set_current(tid, "djay", learn=learn, deck=deck)
+        else:
+            print("now playing not in library:", key, file=sys.stderr)
+            self.np_unmatched = {"title": info.get("title"), "artist": info.get("artist")}
+            self.version += 1
+        return True
+
     def monitor(self, interval=1.5):
         while True:
             try:
@@ -269,6 +307,8 @@ class AppState:
                 "languages": LANGUAGES,
                 "autoGenre": self.settings["autoGenre"],
                 "update": self.update,
+                "nowPlayingFile": self.np_source,
+                "nowPlayingUnmatched": self.np_unmatched,
                 "autoUpdateCheck": self.settings.get("autoUpdateCheck", True),
                 "compact": self.settings["compact"],
                 "hasWindow": self.window is not None,

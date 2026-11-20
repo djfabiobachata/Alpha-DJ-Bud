@@ -82,6 +82,8 @@ function render(s) {
   else if (!s.playlistByGenre[s.genre]) status = t("status.choose", { genre: gname });
   else if (!s.current) status = t("status.lib", { n: db.tracks });
   else status = t("status.playing", { genre: gname.toUpperCase(), pool: s.poolSize, played: s.played.length });
+  if (s.nowPlayingUnmatched && s.nowPlayingUnmatched.title)
+    status = "⚠ " + t("np.unmatched", { title: s.nowPlayingUnmatched.title });
   $("statusLcd").textContent = status;
 
   // setup

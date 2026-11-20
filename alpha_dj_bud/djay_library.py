@@ -104,9 +104,24 @@ def _resolve_macos(loc):
     return None
 
 
+def _norm_text(s):
+    import unicodedata
+    s = unicodedata.normalize("NFKD", str(s or ""))
+    s = "".join(c for c in s if not unicodedata.combining(c)).lower()
+    return re.sub(r"[^a-z0-9]+", " ", s).strip()
+
+
+def _duration(text):
+    m = re.match(r"^\s*(?:(\d+):)?(\d+):(\d{2})\s*$", text or "")
+    if not m:
+        return None
+    h, mnt, sec = m.groups()
+    return int(h or 0) * 3600 + int(mnt) * 60 + int(sec)
+
+
 class Track:
     __slots__ = ("id", "title", "artist", "bpm", "key", "duration",
-                 "comments", "genre", "key_source", "djay_title")
+                 "comments", "genre", "key_source", "djay_title", "djay_artist")
 
     def __init__(self, id, title, artist, bpm, key, duration, comments=None,
                  genre=None, key_source="djay"):
@@ -119,7 +134,8 @@ class Track:
         self.comments = comments or ""
         self.genre = genre or ""
         self.key_source = key_source
-        self.djay_title = self.title  # title exactly as shown in djay (for search)
+        self.djay_title = self.title  # title exactly as shown in djay
+        self.djay_artist = self.artist
 
     def to_dict(self):
         return {
@@ -273,6 +289,7 @@ class DjayLibrary:
                   item.get("duration") or tid.get("duration"),
                   item.get("comments"), genre, key_source)
         t.djay_title = djay_title
+        t.djay_artist = item.get("artist") or tid.get("artist") or ""
         return t
 
     # -- playlists ---------------------------------------------------------
@@ -419,6 +436,51 @@ class DjayLibrary:
         if plain:  # e.g. external drive not mounted: still return the path
             return unquote(urlparse(plain[0]).path)
         return None
+
+    # -- NowPlaying.txt (written by djay for the track on air) ----------------
+    def now_playing_path(self):
+        return os.path.join(os.path.dirname(self.path), "NowPlaying.txt")
+
+    def read_now_playing(self):
+        """Return (mtime, {'title','artist','album','time'}) or (None, None)."""
+        p = self.now_playing_path()
+        try:
+            mtime = os.path.getmtime(p)
+            with open(p, encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except OSError:
+            return None, None
+        info = {}
+        for line in text.splitlines():
+            if ":" in line:
+                k, v = line.split(":", 1)
+                info[k.strip().lower()] = v.strip()
+        return mtime, info
+
+    def match_now_playing(self, info, prefer=()):
+        """Find the library track for NowPlaying.txt's title/artist."""
+        if not info or not info.get("title"):
+            return None
+        want_t = _norm_text(info.get("title"))
+        want_a = _norm_text(info.get("artist"))
+        want_len = _duration(info.get("time"))
+        best, best_score = None, -1
+        for tid, t in self.tracks.items():
+            if _norm_text(t.djay_title) != want_t and _norm_text(t.title) != want_t:
+                continue
+            score = 1
+            a = _norm_text(t.djay_artist or t.artist)
+            if want_a and a and (a == want_a or a in want_a or want_a in a):
+                score += 4
+            if want_len and t.duration and abs(t.duration - want_len) <= 2:
+                score += 2
+            if tid in prefer:
+                score += 3
+            if self.has_file(tid):
+                score += 1
+            if score > best_score:
+                best, best_score = tid, score
+        return best
 
     def get(self, track_id):
         return self.tracks.get(track_id)

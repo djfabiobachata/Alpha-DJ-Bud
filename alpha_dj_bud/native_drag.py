@@ -8,9 +8,10 @@ How it works:
      very event (like dragging the file from the Finder);
   3. releasing the mouse disarms it.
 
-Two ways of starting the drag are tried, so djay gets the file in the form it
-expects: the modern dragging session (file URL + legacy file-name list), and
-if that fails, the classic NSView.dragFile (the Finder-style drag).
+The file is written to the pasteboard as an NSURL (like the Finder does), so
+macOS attaches the sandbox access djay needs; if the modern dragging session
+can't start, the classic NSView.dragFile is used instead.
+Note: in djay, drop the track on the deck's waveform area.
 
 status() tells the page what happened, so a failed drag shows a reason.
 """
@@ -99,24 +100,19 @@ def _release_view():
 
 
 def _session_drag(view, event, path):
-    from AppKit import NSDraggingItem, NSMakeRect, NSPasteboardItem, NSURL, NSWorkspace
+    # The file goes on the pasteboard as an NSURL object, exactly like the
+    # Finder does: that is what makes macOS attach the sandbox access that
+    # djay (App Store app) needs to open the file. A plain string URL is not
+    # enough: djay sees the file but cannot read it, and refuses the drop.
+    from AppKit import NSDraggingItem, NSMakeRect, NSURL, NSWorkspace
     url = NSURL.fileURLWithPath_(path)
-    data = NSPasteboardItem.alloc().init()
-    data.setString_forType_(url.absoluteString(), "public.file-url")
-    data.setString_forType_(path, "public.utf8-plain-text")
-    item = NSDraggingItem.alloc().initWithPasteboardWriter_(data)
+    item = NSDraggingItem.alloc().initWithPasteboardWriter_(url)
     icon = NSWorkspace.sharedWorkspace().iconForFile_(path)
     p = view.convertPoint_fromView_(event.locationInWindow(), None)
     item.setDraggingFrame_contents_(NSMakeRect(p.x - 24, p.y - 24, 48, 48), icon)
     session = view.beginDraggingSessionWithItems_event_source_([item], event, _installed["source"])
     if session is None:
         raise RuntimeError("no dragging session")
-    try:  # also offer the legacy file list that older drop targets read
-        pb = session.draggingPasteboard()
-        pb.addTypes_owner_(["NSFilenamesPboardType"], None)
-        pb.setPropertyList_forType_([path], "NSFilenamesPboardType")
-    except Exception as e:
-        _log("legacy type not added:", e)
     return "session"
 
 
