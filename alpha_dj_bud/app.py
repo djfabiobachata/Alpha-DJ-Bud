@@ -34,6 +34,31 @@ def _open_chrome_app(url, compact):
     return False
 
 
+ASSETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
+
+
+def brand_macos_process():
+    """Show 'Alpha DJ Bud' and its icon instead of 'Python' in the menu bar
+    and Dock. Must run before the window is created."""
+    if sys.platform != "darwin":
+        return
+    try:
+        from AppKit import NSApplication, NSImage
+        from Foundation import NSBundle
+        info = NSBundle.mainBundle().infoDictionary()
+        if info is not None:
+            info["CFBundleName"] = "Alpha DJ Bud"
+            info["CFBundleDisplayName"] = "Alpha DJ Bud"
+        app = NSApplication.sharedApplication()
+        icon = os.path.join(ASSETS, "AppIcon.icns")
+        if os.path.exists(icon):
+            img = NSImage.alloc().initWithContentsOfFile_(icon)
+            if img is not None:
+                app.setApplicationIconImage_(img)
+    except Exception as e:  # cosmetic only
+        print("branding:", e)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Alpha DJ Bud")
     ap.add_argument("--db", help="path to MediaLibrary.db (optional)")
@@ -61,6 +86,7 @@ def main(argv=None):
     if not args.browser:
         try:
             import webview  # pywebview
+            brand_macos_process()
             compact = state.settings.get("compact")
             w, h = (360, 560) if compact else (1080, 760)
             state.window = webview.create_window(

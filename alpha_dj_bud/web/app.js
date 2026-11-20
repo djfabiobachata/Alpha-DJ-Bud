@@ -82,7 +82,7 @@ function render(s) {
 
   // setup
   fillSelect($("selEvent"), s.events.map((e) => [e.id, t("event." + e.id)]), s.event);
-  const allowed = s.event === "mista" ? s.genres.map((g) => g.id) : [s.event];
+  const allowed = s.event === "mista" ? s.mixedGenres : [s.event];
   $("genreSeg").innerHTML = s.genres.map((g) =>
     `<button data-g="${g.id}" class="${g.id === s.genre ? "on" : ""}" ${allowed.includes(g.id) ? "" : "disabled"}>${g.name.toUpperCase()}</button>`).join("");
   const opts = [["", t("setup.choose")]].concat(
@@ -143,6 +143,8 @@ function renderSuggestions(s) {
         <div class="bpm">${tr.bpm.toFixed(1)}<small class="${dcls}">${ds}</small></div>
         <div class="score"><div class="meter"><i style="width:${tr.score}%"></i></div><div class="rel">${esc(relName(tr.relation))}</div></div>
         <div class="acts">
+          <button class="deck d1" data-deck="1" title="${esc(t("next.deck1"))}">1</button>
+          <button class="deck d2" data-deck="2" title="${esc(t("next.deck2"))}">2</button>
           <button class="play" title="${esc(t("next.play"))}">▶</button>
           <button class="like" title="${esc(t("next.like"))}">♥</button>
           <button class="hide" title="${esc(t("next.hide"))}">✕</button>
@@ -197,10 +199,20 @@ $("nextList").onclick = (e) => {
   const row = e.target.closest(".trk"); const b = e.target.closest("button");
   if (!row || !b) return;
   const id = row.dataset.id;
-  if (b.classList.contains("play")) act("current", { id });
+  if (b.classList.contains("deck")) loadDeck(id, parseInt(b.dataset.deck, 10), b);
+  else if (b.classList.contains("play")) act("current", { id });
   else if (b.classList.contains("like")) act("like", { id, value: 1 }, t("toast.liked"));
   else if (b.classList.contains("hide")) act("hide", { id });
 };
+
+async function loadDeck(id, deck, btn) {
+  btn.classList.add("busy");
+  try {
+    const r = await api("load", { id, deck });
+    toast(r.ok ? t("load.ok", { deck, title: r.title }) : t("load." + r.code) + (r.detail && r.code === "failed" ? " (" + r.detail + ")" : ""));
+  } catch (e) { toast(t("toast.error", { e: e.message })); }
+  btn.classList.remove("busy");
+}
 
 let searchTimer;
 $("search").oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(doSearch, 200); };
@@ -223,6 +235,7 @@ $("btnSettings").onclick = () => {
   const o = S.options;
   $("optLang").value = LANG;
   $("optTol").value = o.bpmTolerance; $("optArtist").value = o.artistWindow; $("optLimit").value = o.limit;
+  $("optVariety").value = String(o.variety ?? 50);
   $("optTritone").checked = o.includeTritone; $("optHalf").checked = o.halfDouble; $("optReplays").checked = o.avoidReplays;
   $("optComments").checked = S.keyFromComments; $("optAutoGenre").checked = S.autoGenre;
   $("optDb").value = "";
@@ -239,6 +252,7 @@ $("btnSaveSettings").onclick = () => {
       bpmTolerance: parseFloat($("optTol").value) || 0, artistWindow: parseInt($("optArtist").value, 10) || 0,
       limit: parseInt($("optLimit").value, 10) || 15, includeTritone: $("optTritone").checked,
       halfDouble: $("optHalf").checked, avoidReplays: $("optReplays").checked,
+      variety: parseInt($("optVariety").value, 10),
     },
     keyFromComments: $("optComments").checked, autoGenre: $("optAutoGenre").checked,
   };

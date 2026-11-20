@@ -20,6 +20,7 @@ GENRES = [
 # names are translated by the UI (event.<id>)
 EVENTS = [{"id": "bachata"}, {"id": "salsa"}, {"id": "zouk"}, {"id": "mista"}]
 LANGUAGES = ["en", "it", "es"]
+MIXED_GENRES = ["bachata", "salsa"]  # mixed nights: Bachata + Salsa (no Zouk)
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 
 
@@ -89,6 +90,7 @@ class AppState:
     def new_set(self, save=True):
         with self.lock:
             self.set_start = time.time()
+            self.set_id = "set:%d" % int(self.set_start)
             self.played = []          # track ids in this set
             self.hidden = set()
             self.current_id = None
@@ -126,14 +128,14 @@ class AppState:
                 self._maybe_switch_genre(track_id)
             prev = self.library.get(self.current_id) if self.current_id else None
             if learn:
-                self.brain.observe(self.settings["genre"], prev, new, self.shown)
+                self.brain.observe(self.settings["genre"], prev, new, self.shown, set_id=self.set_id)
             self.current_id = track_id
             self.current_source = source
             self.played.append(track_id)
             self.version += 1
 
     def _maybe_switch_genre(self, track_id):
-        allowed = [g["id"] for g in GENRES] if self.settings["event"] == "mista" else [self.settings["event"]]
+        allowed = MIXED_GENRES if self.settings["event"] == "mista" else [self.settings["event"]]
         cur = self.settings["genre"]
         if track_id in set(self.pool(cur)):
             return
@@ -192,7 +194,7 @@ class AppState:
             if lib and current:
                 suggestions, stats = recommender.recommend(
                     lib, current, pool, self.played, self.brain, genre,
-                    self.settings["options"], self.hidden)
+                    self.settings["options"], self.hidden, self.set_id)
             self.shown = [s["id"] for s in suggestions]
             played = [lib.get(t).to_dict() for t in self.played[-12:] if lib and lib.get(t)]
             cur = current.to_dict() if current else None
@@ -205,6 +207,7 @@ class AppState:
                 "version": self.version,
                 "events": EVENTS,
                 "genres": GENRES,
+                "mixedGenres": MIXED_GENRES,
                 "event": self.settings["event"],
                 "genre": genre,
                 "playlistByGenre": self.settings["playlistByGenre"],
@@ -248,11 +251,15 @@ class AppState:
     # -- actions -------------------------------------------------------------
     def action(self, name, body):
         s = self.settings
+        if name == "load":  # slow (talks to djay): don't hold the lock
+            return self.load_to_deck(body["id"], int(body.get("deck", 1)))
         with self.lock:
             if name == "event":
                 s["event"] = body["event"]
                 if body["event"] != "mista":
                     s["genre"] = body["event"]
+                elif s["genre"] not in MIXED_GENRES:
+                    s["genre"] = MIXED_GENRES[0]
             elif name == "genre":
                 s["genre"] = body["genre"]
             elif name == "playlist":
@@ -299,6 +306,20 @@ class AppState:
             self.version += 1
             self.save_settings()
             return {"ok": True}
+
+    def load_to_deck(self, track_id, deck):
+        """Load a track onto djay's deck 1/2. Runs outside the state lock."""
+        t = self.library.get(track_id) if self.library else None
+        if t is None:
+            return {"ok": False, "code": "notFound"}
+        from .djay_control import LoadError, load_track
+        try:
+            load_track(t.djay_title, t.artist, deck)
+            return {"ok": True, "deck": deck, "title": t.title}
+        except LoadError as e:
+            return {"ok": False, "code": e.code, "detail": e.detail}
+        except Exception as e:
+            return {"ok": False, "code": "failed", "detail": str(e)}
 
     def apply_window(self):
         w = self.window

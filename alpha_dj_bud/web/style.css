@@ -121,7 +121,7 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
 /* ---------- suggestion list ---------- */
 .list { overflow-y: auto; min-height: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; padding-right: 2px; }
 .list::-webkit-scrollbar { width: 6px; } .list::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 3px; }
-.trk { display: grid; grid-template-columns: 26px 46px minmax(0, 1fr) 82px 92px auto; align-items: center; gap: 8px;
+.trk { display: grid; grid-template-columns: 26px 46px minmax(0, 1fr) 70px 86px auto; align-items: center; gap: 8px;
   padding: 6px 8px; border-radius: 7px; background: rgba(0,0,0,.28); border: 1px solid transparent; }
 .trk:hover { border-color: var(--edge); background: rgba(155,92,255,.08); }
 .trk.top { border-color: rgba(61,255,143,.35); background: rgba(61,255,143,.06); }
@@ -144,6 +144,12 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
   background: linear-gradient(180deg, #332c3f, #1f1a27); color: #cfc6dd; font-size: 12px; }
 .acts button:hover { color: var(--green); }
 .acts button.like:hover { color: var(--purple); }
+.acts button.deck { font: 800 12px var(--mono); color: #04110a; background: linear-gradient(180deg, #7dffb6, var(--green)); }
+.acts button.deck.d2 { color: #fff; background: linear-gradient(180deg, #a77cff, var(--purple-deep)); }
+.acts button.deck:hover { filter: brightness(1.2); color: #04110a; }
+.acts button.deck.d2:hover { color: #fff; }
+.acts button.busy { opacity: .4; pointer-events: none; }
+.hint { margin: -4px 0 8px; font-size: 11px; color: var(--muted); }
 .empty { color: var(--muted); text-align: center; padding: 26px 10px; font-size: 13px; }
 .empty b { color: var(--text); }
 .filter-note { margin-top: 6px; color: var(--muted); font: 11px var(--mono); text-align: center; }
@@ -222,7 +228,7 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
   .trk .rank, .trk .score { display: none; }
   .badge { min-width: 36px; font-size: 12px; }
   .trk .bpm { font-size: 12px; }
-  .acts button.like, .acts button.hide { display: none; }
+  .acts button.like, .acts button.hide, .acts button.play { display: none; }
   .filter-note { display: none; }
 }
 .opt select.lang-select { width: 150px; }

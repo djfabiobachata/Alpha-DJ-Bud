@@ -112,11 +112,11 @@ class RecommenderTest(unittest.TestCase):
         self.assertFalse({"t06", "t07"} & {x["id"] for x in out})
 
     def test_learning_changes_ranking(self):
-        before = [x["id"] for x in self.rec()[0]]
+        before = [x["id"] for x in self.rec(variety=0)[0]]
         cur, nxt = self.lib.get("t01"), self.lib.get("t07")
         for _ in range(30):
             self.brain.observe("bachata", cur, nxt, save=False)
-        after = [x["id"] for x in self.rec()[0]]
+        after = [x["id"] for x in self.rec(variety=0)[0]]
         self.assertGreater(before.index("t07"), 0)
         self.assertEqual(after[0], "t07")
         self.assertTrue(self.brain.score("bachata", cur, nxt, camelot.REL_TRITONE)[1])
@@ -174,7 +174,8 @@ class LanguageTest(unittest.TestCase):
         st.action("options", {"language": "xx"})  # ignored
         self.assertEqual(st.snapshot()["language"], "es")
         # every language has the same keys as English
-        js = open(os.path.join(os.path.dirname(__file__), "..", "alpha_dj_bud", "web", "i18n.js"), encoding="utf-8").read()
+        with open(os.path.join(os.path.dirname(__file__), "..", "alpha_dj_bud", "web", "i18n.js"), encoding="utf-8") as f:
+            js = f.read()
         blocks = dict(re.findall(r"\n  (en|it|es): \{(.*?)\n  \},", js, re.S))
         keys = {k: set(re.findall(r'"([\w.]+)":', v)) for k, v in blocks.items()}
         self.assertEqual(keys["it"], keys["en"])
@@ -187,3 +188,62 @@ class LanguageTest(unittest.TestCase):
             json.dump({"version": 1, "genres": {"bachata": {"relations": {"stessa key": 3, "+6": 1}}}}, f)
         b = Brain(p)
         self.assertEqual(b.g("bachata")["relations"], {"same": 3, "tritone": 1})
+
+
+class VarietyTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.lib = DjayLibrary(fixture.build(os.path.join(self.tmp, "MediaLibrary.db")))
+        self.lib.refresh(force=True)
+        self.brain = Brain(os.path.join(self.tmp, "brain.json"))
+        self.pool = self.lib.tracks_in("F-BACHATA")
+        self.cur = self.lib.get("t01")
+
+    def order(self, set_id, variety=50):
+        out, _ = recommender.recommend(self.lib, self.cur, self.pool, [], self.brain, "bachata",
+                                       {"variety": variety}, set_id=set_id)
+        return [x["id"] for x in out]
+
+    def test_stable_within_a_set(self):
+        self.assertEqual(self.order("friday"), self.order("friday"))
+
+    def test_changes_between_nights(self):
+        orders = {tuple(self.order("night-%d" % i)) for i in range(8)}
+        self.assertGreater(len(orders), 1)
+
+    def test_off_means_deterministic_best_match(self):
+        self.assertEqual(len({tuple(self.order("night-%d" % i, variety=0)) for i in range(5)}), 1)
+
+    def test_last_nights_follow_up_is_pushed_down(self):
+        friday = self.order("friday", variety=80)
+        top = friday[0]
+        # on Friday you played the hit t01 and then the top suggestion
+        self.brain.observe("bachata", self.cur, self.lib.get(top), shown=friday,
+                           save=False, when=time.time() - 86400, set_id="friday")
+        saturday = self.order("saturday", variety=80)
+        self.assertGreater(saturday.index(top), 0)
+        self.assertNotEqual(saturday[:3], friday[:3])
+
+
+class MixedNightAndLoadTest(unittest.TestCase):
+    def test_mixed_night_is_bachata_and_salsa_only(self):
+        tmp = tempfile.mkdtemp()
+        os.environ["ALPHA_DJ_BUD_HOME"] = os.path.join(tmp, "home")
+        from alpha_dj_bud.server import AppState
+        st = AppState(fixture.build(os.path.join(tmp, "MediaLibrary.db")))
+        st.action("event", {"event": "zouk"})
+        self.assertEqual(st.snapshot()["genre"], "zouk")
+        st.action("event", {"event": "mista"})
+        snap = st.snapshot()
+        self.assertEqual(snap["genre"], "bachata")
+        self.assertEqual(snap["mixedGenres"], ["bachata", "salsa"])
+
+    def test_load_reports_a_clear_error_off_mac(self):
+        tmp = tempfile.mkdtemp()
+        os.environ["ALPHA_DJ_BUD_HOME"] = os.path.join(tmp, "home")
+        from alpha_dj_bud.server import AppState
+        st = AppState(fixture.build(os.path.join(tmp, "MediaLibrary.db")))
+        r = st.action("load", {"id": "t03", "deck": 2})
+        self.assertFalse(r["ok"])
+        self.assertIn(r["code"], ("notMac", "noPyobjc"))
+        self.assertEqual(st.action("load", {"id": "nope", "deck": 1})["code"], "notFound")

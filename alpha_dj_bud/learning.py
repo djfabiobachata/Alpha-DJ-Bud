@@ -9,8 +9,10 @@ Everything stays on the Mac, in a JSON file. For each genre the brain counts:
 From these it produces a 0..1 preference score that the recommender blends
 with the harmonic/BPM score. The more sets you play, the more weight it gets.
 """
+import hashlib
 import json
 import math
+import time
 import os
 import tempfile
 import threading
@@ -32,7 +34,12 @@ def _empty_genre():
         "transitions": 0,
         "sets": 0,
         "imported_sessions": [],
+        "log": [],          # recent transitions [from, to, unix time, set id]
+        "shownAfter": {},   # from_id: [unix time, set id, [top-5 ids shown]]
     }
+
+LOG_MAX = 4000
+DAY = 86400.0
 
 
 class Brain:
@@ -73,11 +80,17 @@ class Brain:
             return gd
 
     # -- learning ------------------------------------------------------------
-    def observe(self, genre, prev, new, shown=None, save=True):
+    def observe(self, genre, prev, new, shown=None, save=True, when=None, set_id=None):
         """Record that `new` (Track) was played after `prev` (Track or None).
         `shown` is the list of suggested track ids visible at that moment."""
+        when = when or time.time()
         with self.lock:
             gd = self.g(genre)
+            gd["log"].append([prev.id if prev else None, new.id, when, set_id])
+            if len(gd["log"]) > LOG_MAX:
+                del gd["log"][: len(gd["log"]) - LOG_MAX]
+            if prev is not None and shown:
+                gd["shownAfter"][prev.id] = [when, set_id, list(shown[:5])]
             gd["plays"][new.id] = gd["plays"].get(new.id, 0) + 1
             if new.id in gd["ignored"]:
                 gd["ignored"][new.id] = gd["ignored"][new.id] * 0.5
@@ -126,12 +139,13 @@ class Brain:
                 if in_pool / len(s["tracks"]) < 0.6:
                     continue
                 prev = None
-                for tid in s["tracks"]:
+                times = s.get("times") or [None] * len(s["tracks"])
+                for tid, when in zip(s["tracks"], times):
                     t = library.get(tid)
                     if t is None:
                         prev = None
                         continue
-                    self.observe(genre, prev, t, save=False)
+                    self.observe(genre, prev, t, save=False, when=when, set_id="djay:" + s["id"])
                     prev = t
                 gd["imported_sessions"].append(s["id"])
                 added += 1
@@ -180,6 +194,42 @@ class Brain:
         ign = gd["ignored"].get(cand.id, 0)
         s -= min(0.25, 0.03 * ign)
         return max(0.0, min(1.0, s)), reasons
+
+    def freshness(self, genre, current, set_id, now=None):
+        """Penalties (0..1) for candidates that were recently used after
+        `current` in OTHER sets, so the same hit doesn't always get the same
+        follow-ups night after night. Returns {track_id: penalty}."""
+        now = now or time.time()
+        gd = self.g(genre)
+        pen = {}
+
+        def add(tid, v):
+            pen[tid] = min(1.0, pen.get(tid, 0.0) + v)
+
+        horizon = now - 21 * DAY
+        for a, b, t, sid in reversed(gd["log"]):
+            if t < horizon:
+                break
+            if sid == set_id:
+                continue
+            days = (now - t) / DAY
+            if a == current.id:            # you went current -> b recently
+                add(b, 1.0 * math.exp(-days / 5))
+            else:                          # b was played in a recent set
+                add(b, 0.25 * math.exp(-days / 3))
+        sa = gd["shownAfter"].get(current.id)
+        if sa and sa[1] != set_id and sa[0] >= horizon:
+            days = (now - sa[0]) / DAY
+            for tid in sa[2]:
+                add(tid, 0.5 * math.exp(-days / 5))
+        return pen
+
+    @staticmethod
+    def jitter(set_id, a, b):
+        """Stable pseudo-random 0..1 per (set, current, candidate): the list
+        doesn't jump around during a set, but changes from night to night."""
+        h = hashlib.md5(("%s|%s|%s" % (set_id, a, b)).encode()).digest()
+        return int.from_bytes(h[:4], "big") / 2 ** 32
 
     def stats(self, genre):
         gd = self.g(genre)

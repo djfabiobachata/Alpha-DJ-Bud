@@ -75,7 +75,7 @@ def bpm_from_text(*texts):
 
 class Track:
     __slots__ = ("id", "title", "artist", "bpm", "key", "duration",
-                 "comments", "genre", "key_source")
+                 "comments", "genre", "key_source", "djay_title")
 
     def __init__(self, id, title, artist, bpm, key, duration, comments=None,
                  genre=None, key_source="djay"):
@@ -88,6 +88,7 @@ class Track:
         self.comments = comments or ""
         self.genre = genre or ""
         self.key_source = key_source
+        self.djay_title = self.title  # title exactly as shown in djay (for search)
 
     def to_dict(self):
         return {
@@ -208,6 +209,7 @@ class DjayLibrary:
             tids = analyzed.get("titleIDs") or []
             tid = tids[0] if tids and isinstance(tids[0], dict) else {}
         title = item.get("title") or tid.get("title") or ""
+        djay_title = title
         artist = item.get("artist") or tid.get("artist")
         if not artist and item.get("artistUUIDs"):
             names = [artists.get(a) for a in item["artistUUIDs"] if artists.get(a)]
@@ -227,9 +229,11 @@ class DjayLibrary:
         if comment_key and (self.key_from_comments or key is None):
             key, key_source = comment_key, "commenti"
         genre = ", ".join(genres.get(g, "") for g in item.get("genreUUIDs") or [] if genres.get(g))
-        return Track(uid, title, artist, float(bpm) if bpm else None, key,
-                     item.get("duration") or tid.get("duration"),
-                     item.get("comments"), genre, key_source)
+        t = Track(uid, title, artist, float(bpm) if bpm else None, key,
+                  item.get("duration") or tid.get("duration"),
+                  item.get("comments"), genre, key_source)
+        t.djay_title = djay_title
+        return t
 
     # -- playlists ---------------------------------------------------------
     def tree(self):
@@ -335,7 +339,8 @@ class DjayLibrary:
                                 apple_time_to_unix(it.get("startTime")) or 0))
             seq.sort(key=lambda x: x[1])
             out.append({"id": uid, "start": apple_time_to_unix(s.get("startDate")),
-                        "tracks": [t for t, _ in seq if t]})
+                        "tracks": [t for t, _ in seq if t],
+                        "times": [w for t, w in seq if t]})
         out.sort(key=lambda s: s["start"] or 0)
         return out
 
