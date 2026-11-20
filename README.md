@@ -10,9 +10,7 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
 
 ## What it does
 
-1. **Connects to djay Pro automatically.** It reads djay's library (read-only, it never changes anything): `~/Music/djay/djay Media Library.djayMediaLibrary/MediaLibrary.db`.
-   - **Now playing follows your faders**: a track becomes "now playing" only when you **raise its deck's volume fader** (and the crossfader lets it through). Pre-listening a track with the fader at zero changes nothing. The **FADER** light is green when this is active.
-   - If the faders can't be read (permission not given yet, or djay's mixer hidden), Bud falls back to djay's history: the track appears when djay logs it as played. You can choose the mode in ⚙ Settings → Now playing follows.
+1. **Connects to djay Pro automatically.** It reads djay's library (read-only, it never changes anything): `~/Music/djay/djay Media Library.djayMediaLibrary/MediaLibrary.db`. When djay logs a track as played in its history, Bud picks it up in about 1–2 seconds. If needed, you can set the playing track manually with the search on the right.
 2. **You set it up before the night:**
    - **Event**: Bachata, Salsa, Zouk, or a mixed night (Bachata + Salsa).
    - **Now playing**: the genre you are playing right now.
@@ -45,8 +43,7 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
    - The installer needs internet once, to download the components.
    - If Python 3 is missing, open Terminal and run `xcode-select --install`, then run the installer again.
 3. The installer creates **Alpha DJ Bud.app** in your **Applications** folder (`~/Applications`), with its own name and icon, and opens it. Drag it to the Dock to keep it handy. After that you can delete the downloaded folder.
-4. **Allow Accessibility** (needed to follow the faders): the first time, macOS asks to let the app control the computer. Open **System Settings → Privacy & Security → Accessibility** and turn on the entry that appears (it may be called **Python**: it's the engine running Alpha DJ Bud). Then quit and reopen Alpha DJ Bud. Bud only *reads* djay's faders: it never moves anything.
-5. Open djay Pro, choose the genre and folder in Alpha DJ Bud, and start playing.
+4. Open djay Pro, choose the genre and folder in Alpha DJ Bud, and start playing.
 
 ### Updates
 
@@ -99,11 +96,11 @@ python3 -m alpha_dj_bud.app --db "/path/to/MediaLibrary.db"
 | Action | How |
 |---|---|
 | Load into djay | Drag a suggestion onto a djay deck |
-| Playing track | Automatic: changes when you raise a deck's fader (deck shown, "ON AIR"). If needed, set it with the search in "Set now playing manually" |
+| Playing track | Automatic from djay's history (deck shown). If needed, set it with the search in "Set now playing manually" |
 | Like / don't suggest | **♥** / **✕** on the suggestion row |
 | End of the night | **END SET**: saves what Bud has learned |
 | New set | **NEW SET**: resets played and hidden tracks |
-| Settings ⚙ | Language (English / Italiano / Español), now playing detection (faders / history), suggestion variety, BPM tolerance, artist window, 6-step jump, double/half tempo, key from Mixed In Key comments, automatic genre switch, library path |
+| Settings ⚙ | Language (English / Italiano / Español), suggestion variety, BPM tolerance, artist window, 6-step jump, double/half tempo, key from Mixed In Key comments, automatic genre switch, library path |
 
 On a **mixed night**, if you play a track that sits in another genre's folder, Bud switches genre on its own.
 
@@ -127,7 +124,6 @@ alpha_dj_bud/
   server.py        local server + djay monitor
   updater.py       in-app updates from GitHub releases
   native_drag.py   macOS file drag from the window onto djay
-  deck_monitor.py  reads djay's volume faders and crossfader (macOS Accessibility)
   app.py           launch and window (pywebview / browser)
   web/             interface (HTML/CSS/JS, translations in i18n.js)
 assets/            app icon
@@ -143,6 +139,7 @@ To add a language, copy the `en` block in `alpha_dj_bud/web/i18n.js`, translate 
 
 - **djay Pro for macOS** only (on Windows djay doesn't expose its data the same way).
 - djay's database format is undocumented. A djay update could change it; in that case the **DJAY** light turns red.
-- Fader following reads djay's main window and works with decks 1 and 2. In history mode, the playing track appears when djay logs it as played.
+- The playing track comes from djay's history, so it appears when djay logs it as played.
+- If a drag doesn't start, the app shows a message with the reason: send it to support. Details are also in `~/Library/Application Support/Alpha DJ Bud/alpha-dj-bud.log` (lines starting with `[drag]`).
 - Drag works only for tracks with a local file, and the drive holding it must be connected. The full drag to djay needs the native window (installed app); in the browser it depends on the browser.
 - With the native window, the Dock and the menu bar show "Alpha DJ Bud" and its icon; in a few places macOS may still say "Python", because that's the engine running the app.

@@ -47,7 +47,6 @@ class AppState:
             "keyFromComments": False,
             "autoGenre": True,
             "autoUpdateCheck": True,
-            "detection": "fader",   # "fader" (djay mixer, macOS) or "history"
             "dbPath": db_path,
             "compact": False,
             "language": "en",
@@ -58,7 +57,6 @@ class AppState:
         self.brain = Brain(os.path.join(self.home, "brain.json"))
         self.library = None
         self.version = 0
-        self.deck_status = {"ok": False, "mode": "history"}
         self.update = {"available": False, "latest": None, "error": None, "checkedAt": None,
                        "installing": False}
         self.window = None  # pywebview window, if any
@@ -101,7 +99,6 @@ class AppState:
             self.current_id = None
             self.current_source = None
             self.current_deck = None
-            self.deck_tracks = {}
             self.last_history_time = 0
             self._history_checked = False
             self.shown = []
@@ -171,76 +168,15 @@ class AppState:
         fresh = [h for h in hist if h["time"] > self.last_history_time]
         if fresh:
             self.last_history_time = fresh[-1]["time"]
-            for h in hist:  # which track sits on which deck
-                if h["deck"] is not None:
-                    self.deck_tracks[h["deck"]] = h["track_id"]
-            if self.fader_active():
-                # faders decide; history only matters for the deck that is on air
-                d = self.deck_status.get("onAir")
-                if d is not None and self.deck_status.get("audible", {}).get(d):
-                    tid = self.deck_tracks.get(d)
-                    if tid and tid != self.current_id:
-                        self.set_current(tid, "djay", deck=d)
-            else:
-                before = [h for h in fresh if h["time"] < self.set_start]
-                during = [h for h in fresh if h["time"] >= self.set_start]
-                if before and not during and self.current_id is None:
-                    # track that was already playing when the set started
-                    self.set_current(before[-1]["track_id"], "djay", learn=False, deck=before[-1]["deck"])
-                for h in during:
-                    self.set_current(h["track_id"], "djay", deck=h["deck"])
+            before = [h for h in fresh if h["time"] < self.set_start]
+            during = [h for h in fresh if h["time"] >= self.set_start]
+            if before and not during and self.current_id is None:
+                # track that was already playing when the set started
+                self.set_current(before[-1]["track_id"], "djay", learn=False, deck=before[-1]["deck"])
+            for h in during:
+                self.set_current(h["track_id"], "djay", deck=h["deck"])
         if changed:
             self.version += 1
-
-    # -- djay mixer (faders) ---------------------------------------------------
-    def fader_active(self):
-        return self.settings.get("detection") == "fader" and self.deck_status.get("ok", False)
-
-    def fader_loop(self, interval=0.4):
-        from .deck_monitor import DeckMonitor, DeckMonitorError, match_title
-        mon = DeckMonitor()
-        prompted = False
-        first = True
-        while True:
-            if self.settings.get("detection") != "fader":
-                self.deck_status = {"ok": False, "mode": "history"}
-                time.sleep(2)
-                continue
-            try:
-                went = mon.step()
-                self.deck_status = {"ok": True, "mode": "fader", "onAir": mon.on_air,
-                                    "audible": dict(mon.audible),
-                                    "gains": {k: round(v, 2) for k, v in mon.last.get("gains", {}).items()}}
-                if first and went is None and mon.on_air is None:
-                    # app opened mid-set: take the deck that is already up
-                    up = [d for d in (0, 1) if mon.audible[d]]
-                    went = up[0] if len(up) == 1 else None
-                    if went is not None:
-                        mon.on_air = went
-                first = False
-                if went is not None:
-                    titles = getattr(mon, "titles", {}).get(went, [])
-                    tid = match_title(self.library, titles, set(self.pool())) or self.deck_tracks.get(went)
-                    if tid:
-                        self.set_current(tid, "djay", deck=went)
-                    else:
-                        with self.lock:
-                            self.current_deck = went
-                            self.version += 1
-                time.sleep(interval)
-            except DeckMonitorError as e:
-                self.deck_status = {"ok": False, "mode": "fader", "error": e.code}
-                if e.code == "noPermission" and not prompted:
-                    prompted = True
-                    try:
-                        mon.permission(prompt=True)
-                    except Exception:
-                        pass
-                time.sleep(3 if e.code != "notMac" else 60)
-            except Exception as e:
-                self.deck_status = {"ok": False, "mode": "fader", "error": "failed", "detail": str(e)}
-                print("faders:", e, file=sys.stderr)
-                time.sleep(3)
 
     # -- updates -------------------------------------------------------------
     def check_update(self):
@@ -310,7 +246,6 @@ class AppState:
             if cur:
                 cur["source"] = self.current_source
                 cur["deck"] = self.current_deck if self.current_source == "djay" else None
-                cur["onAir"] = self.fader_active()
                 cur["inPool"] = self.current_id in set(pool)
             return {
                 "app": {"name": "Alpha DJ Bud", "version": __version__},
@@ -333,8 +268,6 @@ class AppState:
                 "language": self.settings.get("language", "en"),
                 "languages": LANGUAGES,
                 "autoGenre": self.settings["autoGenre"],
-                "detection": self.settings.get("detection", "fader"),
-                "deckStatus": self.deck_status,
                 "update": self.update,
                 "autoUpdateCheck": self.settings.get("autoUpdateCheck", True),
                 "compact": self.settings["compact"],
@@ -392,8 +325,6 @@ class AppState:
                         s["options"][k] = v
                 if body.get("language") in LANGUAGES:
                     s["language"] = body["language"]
-                if body.get("detection") in ("fader", "history"):
-                    s["detection"] = body["detection"]
                 for k in ("keyFromComments", "autoGenre", "autoUpdateCheck"):
                     if k in body:
                         s[k] = bool(body[k])
@@ -534,6 +465,5 @@ def start_server(state, port=0):
     httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(state))
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     threading.Thread(target=state.monitor, daemon=True).start()
-    threading.Thread(target=state.fader_loop, daemon=True).start()
     threading.Thread(target=state.update_loop, daemon=True).start()
     return httpd

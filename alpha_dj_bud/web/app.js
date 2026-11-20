@@ -77,17 +77,11 @@ function render(s) {
   const gname = genreName(s.genre);
   $("ledDjay").className = "led " + (db.ok ? "on" : "err");
   $("ledBrain").className = "led purple" + (s.brain.transitions ? " on" : "");
-  const ds = s.deckStatus || {};
-  const faderOn = s.detection === "fader";
-  $("cellFader").style.display = faderOn ? "" : "none";
-  $("ledFader").className = "led " + (ds.ok ? "on" : ds.error ? "warn" : "");
-  $("cellFader").title = ds.ok ? t("det.ok") : ds.error ? t("det.err." + ds.error) : "";
   let status;
   if (!db.ok) status = "⚠ " + (db.error === "notFound" ? t("status.notFound") : (db.error || t("status.noLib")));
   else if (!s.playlistByGenre[s.genre]) status = t("status.choose", { genre: gname });
   else if (!s.current) status = t("status.lib", { n: db.tracks });
   else status = t("status.playing", { genre: gname.toUpperCase(), pool: s.poolSize, played: s.played.length });
-  if (db.ok && faderOn && ds.error === "noPermission") status = "⚠ " + t("det.err.noPermission");
   $("statusLcd").textContent = status;
 
   // setup
@@ -109,7 +103,7 @@ function render(s) {
   $("nowKey").style.color = c && c.key ? keyColor(c.key) : "";
   $("nowMusical").textContent = c && c.musicalKey ? c.musicalKey : "";
   $("nowBpm").textContent = c && c.bpm ? c.bpm.toFixed(1) : "---";
-  $("nowDeck").textContent = c && c.deck != null ? t("now.deck") + " " + (c.deck + 1) + (c.onAir ? " · ON AIR" : "") : "";
+  $("nowDeck").textContent = c && c.deck != null ? t("now.deck") + " " + (c.deck + 1) : "";
   $("nowSource").textContent = c ? (c.source === "djay" ? t("now.fromDjay") : t("now.manual")) + (c.inPool ? "" : t("now.outside")) : "";
   drawWheel(c && c.key);
 
@@ -227,10 +221,24 @@ $("nextList").addEventListener("mousedown", (e) => {
     }
   }).catch((err) => { row.classList.remove("dragging"); toast(t("drag.failed") + " (" + err + ")"); });
 });
-const endDrag = () => { if (dragRow) { dragRow.classList.remove("dragging"); dragRow = null; } };
+const endDrag = () => {
+  if (!dragRow) return;
+  const row = dragRow; dragRow = null;
+  row.classList.remove("dragging");
+  // tell the DJ why, if the drag never started
+  setTimeout(async () => {
+    try {
+      const st = await window.pywebview.api.drag_status();
+      if (st && st.armed && !st.started) {
+        let why = st.error || (!st.monitor ? (st.install_error || "monitor not installed")
+                 : st.dragged_events === 0 ? "no mouse-drag events" : "too short");
+        if (why !== "too short") toast(t("drag.notStarted") + " (" + why + ")");
+      }
+    } catch (e) {}
+  }, 250);
+};
 document.addEventListener("mouseup", endDrag);
-window.addEventListener("focus", endDrag);
-document.addEventListener("mousemove", (e) => { if (dragRow && !(e.buttons & 1)) endDrag(); });
+window.addEventListener("focus", () => { if (dragRow) { dragRow.classList.remove("dragging"); dragRow = null; } });
 $("nextList").addEventListener("dragstart", (e) => {   // browser mode fallback
   const row = e.target.closest(".trk.can-drag");
   if (!row || nativeDrag()) { e.preventDefault(); return; }
@@ -293,7 +301,6 @@ $("btnSettings").onclick = () => {
   $("optLang").value = LANG;
   $("optAutoUpdate").checked = S.autoUpdateCheck !== false;
   $("updInfo").textContent = updInfoText(S.update);
-  $("optDetection").value = S.detection || "fader";
   $("optTol").value = o.bpmTolerance; $("optArtist").value = o.artistWindow; $("optLimit").value = o.limit;
   $("optVariety").value = String(o.variety ?? 50);
   $("optTritone").checked = o.includeTritone; $("optHalf").checked = o.halfDouble; $("optReplays").checked = o.avoidReplays;
@@ -308,7 +315,6 @@ $("btnCloseSettings").onclick = () => { $("settings").hidden = true; if (S) setL
 $("btnSaveSettings").onclick = () => {
   const body = {
     language: $("optLang").value,
-    detection: $("optDetection").value,
     options: {
       bpmTolerance: parseFloat($("optTol").value) || 0, artistWindow: parseInt($("optArtist").value, 10) || 0,
       limit: parseInt($("optLimit").value, 10) || 15, includeTritone: $("optTritone").checked,

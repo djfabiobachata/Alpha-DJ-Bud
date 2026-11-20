@@ -259,55 +259,6 @@ class MixedNightAndLoadTest(unittest.TestCase):
         self.assertEqual(st.native_drag("t11")["code"], "noFile")
 
 
-class FaderTest(unittest.TestCase):
-    def test_on_air_follows_faders_not_prelisten(self):
-        from alpha_dj_bud.deck_monitor import DeckMonitor
-        mon = DeckMonitor()
-        seq = iter([
-            {0: 0.9, 1: 0.0},   # deck 1 playing out
-            {0: 0.9, 1: 0.0},   # deck 2 pre-listen (fader at zero)
-            {0: 0.9, 1: 0.6},   # fader 2 raised -> deck 2 on air
-            {0: 0.0, 1: 0.9},   # fader 1 down
-            {0: 0.0, 1: 0.9},
-        ])
-        mon.read = lambda: {"gains": next(seq), "titles": {0: [], 1: []}}
-        self.assertEqual(mon.step(), 0)
-        self.assertIsNone(mon.step())
-        self.assertEqual(mon.step(), 1)
-        self.assertIsNone(mon.step())
-        self.assertEqual(mon.on_air, 1)
-
-    def test_history_does_not_override_faders(self):
-        tmp = tempfile.mkdtemp()
-        os.environ["ALPHA_DJ_BUD_HOME"] = os.path.join(tmp, "home")
-        db = fixture.build(os.path.join(tmp, "MediaLibrary.db"))
-        from alpha_dj_bud.server import AppState
-        st = AppState(db)
-        st.action("playlist", {"id": "F-BACHATA"})
-        st.poll()                                   # t01 on deck index 1
-        st.deck_status = {"ok": True, "mode": "fader", "onAir": 1, "audible": {0: False, 1: True}}
-        st.set_current("t01", "djay", deck=1)
-        time.sleep(0.01)
-        fixture.add_history(db, "H3", "t04", deck=0)  # deck 1 pre-listen
-        os.utime(db, None)
-        st.poll()
-        self.assertEqual(st.snapshot()["current"]["id"], "t01")   # unchanged
-        self.assertEqual(st.deck_tracks[0], "t04")
-        # the DJ raises deck 1's fader
-        st.deck_status = {"ok": True, "mode": "fader", "onAir": 0, "audible": {0: True, 1: True}}
-        st.set_current(st.deck_tracks[0], "djay", deck=0)
-        snap = st.snapshot()
-        self.assertEqual(snap["current"]["id"], "t04")
-        self.assertTrue(snap["current"]["onAir"])
-
-    def test_match_title_from_deck_header(self):
-        from alpha_dj_bud.deck_monitor import match_title
-        lib = DjayLibrary(fixture.build(os.path.join(tempfile.mkdtemp(), "MediaLibrary.db")))
-        lib.refresh(force=True)
-        self.assertEqual(match_title(lib, ["Romeo Santos", "Propuesta Indecente", "128.0"]), "t01")
-        self.assertIsNone(match_title(lib, ["Nothing here"]))
-
-
 class UpdaterTest(unittest.TestCase):
     def _zip(self, version="9.9.9", broken=False):
         import io
