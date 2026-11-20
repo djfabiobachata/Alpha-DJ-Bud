@@ -157,6 +157,7 @@ function renderSuggestions(s) {
   }
   const ex = ["key", "bpm", "artist", "played", "noData"].filter((k) => st[k]).map((k) => t("ex." + k, { n: st[k] }));
   $("filterNote").textContent = ex.length ? t("next.excluded") + ": " + ex.join(" · ") : "";
+  rowsSig = ""; setTimeout(sendDragRows, 0);
 }
 
 function fillSelect(sel, items, value) {
@@ -209,35 +210,49 @@ $("nextList").onclick = (e) => {
 
 /* ---------------- drag a suggestion onto a djay deck ---------------- */
 const nativeDrag = () => !!(window.pywebview && window.pywebview.api && window.pywebview.api.drag_track);
+// Native window: macOS does the drag. The app needs to know where each row
+// is, so it can arm the drag even on the first click (window not active).
+let rowsSig = "";
+function sendDragRows() {
+  if (!nativeDrag() || !window.pywebview.api.set_drag_rows) return;
+  const rows = [...document.querySelectorAll("#nextList .trk.can-drag")].map((el) => {
+    const r = el.getBoundingClientRect();
+    return { id: el.dataset.id, x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) };
+  });
+  const sig = JSON.stringify(rows);
+  if (sig === rowsSig) return;
+  rowsSig = sig;
+  window.pywebview.api.set_drag_rows(rows).catch(() => { rowsSig = ""; });
+}
+$("nextList").addEventListener("scroll", sendDragRows);
+window.addEventListener("resize", sendDragRows);
+window.addEventListener("pywebviewready", () => { rowsSig = ""; sendDragRows(); });
+setInterval(sendDragRows, 1000);
+
 let dragRow = null;
 $("nextList").addEventListener("mousedown", (e) => {
   const row = e.target.closest(".trk.can-drag");
   if (!row || e.button !== 0 || e.target.closest("button") || !nativeDrag()) return;
-  e.preventDefault();               // native window: macOS takes over the drag
+  e.preventDefault();               // no text selection: macOS does the drag
   dragRow = row;
   row.classList.add("dragging");
-  window.pywebview.api.drag_track(row.dataset.id).then((r) => {
-    if (!r || !r.ok) {
-      row.classList.remove("dragging");
-      toast(t("drag." + ((r && r.code) || "failed")) + (r && r.path ? " — " + r.path : "") + (r && r.detail ? " (" + r.detail + ")" : ""));
-    }
-  }).catch((err) => { row.classList.remove("dragging"); toast(t("drag.failed") + " (" + err + ")"); });
 });
 const endDrag = () => {
-  if (!dragRow) return;
   const row = dragRow; dragRow = null;
-  row.classList.remove("dragging");
-  // tell the DJ why, if the drag never started
+  if (row) row.classList.remove("dragging");
+  if (!nativeDrag()) return;
   setTimeout(async () => {
     try {
       const st = await window.pywebview.api.drag_status();
-      if (st && st.armed && !st.started) {
-        let why = st.error || (!st.monitor ? (st.install_error || "monitor not installed")
-                 : st.dragged_events === 0 ? "no mouse-drag events" : "too short");
-        if (why !== "too short") toast(t("drag.notStarted") + " (" + why + ")");
+      if (!st || !st.armed) return;
+      if (st.result === "rejected") toast(t("drag.rejected"));
+      else if (!st.started && row) {
+        const why = st.error || (!st.monitor ? (st.install_error || "monitor not installed")
+                   : st.dragged_events === 0 ? "" : "");
+        if (why) toast(t("drag.notStarted") + " (" + why + ")");
       }
     } catch (e) {}
-  }, 250);
+  }, 400);
 };
 document.addEventListener("mouseup", endDrag);
 window.addEventListener("focus", () => { if (dragRow) { dragRow.classList.remove("dragging"); dragRow = null; } });
@@ -308,7 +323,8 @@ $("btnSettings").onclick = () => {
   $("optTritone").checked = o.includeTritone; $("optHalf").checked = o.halfDouble; $("optReplays").checked = o.avoidReplays;
   $("optComments").checked = S.keyFromComments; $("optAutoGenre").checked = S.autoGenre;
   $("optDb").value = "";
-  $("dbInfo").textContent = S.db.path ? t("set.inUse", { path: S.db.path, n: S.db.tracks }) : t("set.noDb");
+  $("dbInfo").textContent = (S.db.path ? t("set.inUse", { path: S.db.path, n: S.db.tracks }) : t("set.noDb")) +
+    "\n" + (S.music && S.music.ok ? t("set.music", { n: S.music.tracks }) : t("set.musicErr"));
   $("settings").hidden = false;
 };
 // live preview of the language inside the dialog

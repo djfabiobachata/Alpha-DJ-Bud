@@ -14,7 +14,7 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
 2. **You set it up before the night:**
    - **Event**: Bachata, Salsa, Zouk, or a mixed night (Bachata + Salsa).
    - **Now playing**: the genre you are playing right now.
-   - **Folder / Playlist**: one djay folder or playlist per genre. Folders include every playlist inside them. Bud remembers the choice for each genre.
+   - **Folder / Playlist**: one folder or playlist per genre — from djay's own playlists **or from the Music app** (the "Music" source in djay, listed under "Apple Music (Musica)"). Folders include every playlist inside them. Bud remembers the choice for each genre.
 3. **Suggests the next tracks** from the chosen folder, with these rules:
    - **Key (Camelot Wheel)**. Example with 3A playing: **3A, 3B, 2A, 4A** and **9A, 9B** (6-step jump). The same rules apply to B keys.
    - **BPM**: same BPM or at most **±4** (adjustable).
@@ -30,8 +30,9 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
    - the ♥ and ✕ you give.
 
    The more sets you play, the more this counts (**CONFIDENCE** meter). **"Learn from djay history"** also learns from sets you played in the past.
-5. **Drag into djay**: drag a suggestion onto a djay deck — drop it on the deck's **waveform area** (not on the title), just like dragging a file from the Finder. Rows with the ⠿ mark have a local file. Streaming tracks (TIDAL, Apple Music...) can't be dragged: load them from djay.
-6. **MINI window**: the **▣ MINI** button turns the app into a small 360×560 window that **stays on top** of djay. It shows only the genre, the playing track and the suggestions.
+5. **Music app tracks**: Bud reads the Music app library (playlists, files). Key and BPM come from djay's analysis when djay has analysed the track, otherwise from the Camelot key / BPM written in the comments or file name (e.g. "12A - 126 - Title", "12A - Energy 6" from Mixed In Key). The first time, macOS asks to allow access to **Media & Apple Music**. Streaming tracks (Apple Music streaming, Spotify, TIDAL) have no file and can't be read or dragged.
+6. **Drag into djay**: drag a suggestion onto a djay deck — drop it on the deck's **waveform area** (not on the title), just like dragging a file from the Finder. Rows with the ⠿ mark have a local file. Streaming tracks (TIDAL, Apple Music...) can't be dragged: load them from djay.
+7. **MINI window**: the **▣ MINI** button turns the app into a small 360×560 window that **stays on top** of djay. It shows only the genre, the playing track and the suggestions.
 
 <img src="docs/screenshot-mini.png" width="260" alt="MINI mode">
 
@@ -123,7 +124,8 @@ alpha_dj_bud/
   learning.py      local learning per genre
   server.py        local server + djay monitor
   updater.py       in-app updates from GitHub releases
-  native_drag.py   macOS file drag from the window onto djay
+  music_library.py Music app library (iTunesLibrary framework)
+  native_drag.py   macOS file drag from the window onto djay (3 methods, the one djay accepts is remembered)
   app.py           launch and window (pywebview / browser)
   web/             interface (HTML/CSS/JS, translations in i18n.js)
 assets/            app icon

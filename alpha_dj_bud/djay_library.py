@@ -12,7 +12,7 @@ import re
 import sqlite3
 import sys
 import time
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 from . import camelot, tsaf
 
@@ -164,6 +164,7 @@ class DjayLibrary:
         self._history_cache = {}
         self.locations = {}
         self._path_cache = {}
+        self.apple_music = None   # data from music_library.load(), merged on each load
 
     # -- low level -------------------------------------------------------
     def _connect(self):
@@ -244,6 +245,7 @@ class DjayLibrary:
                 "tracks": entries,
             }
         self.playlists = playlists
+        self._merge_apple_music()
 
     def _manual_bpms(self, con):
         out = {}
@@ -293,6 +295,75 @@ class DjayLibrary:
         return t
 
     # -- playlists ---------------------------------------------------------
+    # -- Apple Music (the "Music" source in djay) ------------------------------
+    def set_apple_music(self, data):
+        self.apple_music = data
+        self.refresh(force=True)
+
+    def _merge_apple_music(self):
+        am = self.apple_music
+        if not am:
+            return
+        from .music_library import key_bpm_from_text
+        pid_map = {}
+        for uid, loc in self.locations.items():
+            for u in loc["uris"]:
+                if u.startswith("com.apple.iTunes:"):
+                    try:
+                        pid_map[int(u.split(":", 1)[1])] = uid
+                    except ValueError:
+                        pass
+        by_name = {}
+        for uid, t in self.tracks.items():
+            by_name.setdefault((_norm_text(t.djay_title), _norm_text(t.djay_artist or t.artist)), uid)
+
+        def fill(t, d):
+            if not t.key or not t.bpm:
+                k, b = key_bpm_from_text(d["comments"], d["title"],
+                                         os.path.basename(d["path"] or ""))
+                t.key = t.key or k
+                t.bpm = t.bpm or d["bpm"] or b or bpm_from_text(d["title"])
+
+        def add_file(uid, d):
+            if d["path"] and not any(u.startswith("file:") for u in self.locations.get(uid, {}).get("uris", [])):
+                loc = self.locations.setdefault(uid, {"uris": [], "bookmark": None})
+                loc["uris"].append("file://" + quote(d["path"]))
+
+        ids = {}
+        for pid, d in am["tracks"].items():
+            uid = pid_map.get(pid)
+            if uid not in self.tracks:
+                uid = by_name.get((_norm_text(d["title"]), _norm_text(d["artist"])))
+            if uid in self.tracks:
+                fill(self.tracks[uid], d)
+                add_file(uid, d)
+                ids[pid] = uid
+                continue
+            tid = "am:%d" % pid
+            key, bpm = key_bpm_from_text(d["comments"], d["title"], os.path.basename(d["path"] or ""))
+            bpm = d["bpm"] or bpm or bpm_from_text(d["title"], d["comments"])
+            t = Track(tid, d["title"], d["artist"], bpm, key, d["duration"], d["comments"],
+                      d["genre"], "music")
+            t.djay_title, t.djay_artist = d["title"], d["artist"]
+            self.tracks[tid] = t
+            add_file(tid, d)
+            ids[pid] = tid
+
+        root = "am:root"
+        self.playlists[root] = {"id": root, "name": "Apple Music (Musica)", "type": TYPE_FOLDER,
+                                "parent": "am", "children": [], "tracks": []}
+        for pl in am["playlists"]:
+            pid = "am:pl:%d" % pl["pid"]
+            parent = "am:pl:%d" % pl["parent"] if pl["parent"] else root
+            self.playlists[pid] = {"id": pid, "name": pl["name"] or "Playlist",
+                                   "type": TYPE_FOLDER if pl["folder"] else TYPE_PLAYLIST,
+                                   "parent": parent, "children": [],
+                                   "tracks": [ids[i] for i in pl["items"] if i in ids]}
+        for pid, p in list(self.playlists.items()):
+            if pid.startswith("am:pl:"):
+                par = self.playlists.get(p["parent"]) or self.playlists[root]
+                par["children"].append(pid)
+
     def tree(self):
         """Folders and playlists as a nested list (for the dropdown)."""
         def node(uid, depth):

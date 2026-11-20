@@ -124,6 +124,9 @@ const I18N = {
     "upd.err.failed": "Update failed: kept the current version",
     "drag.notStarted": "The drag didn't start — send this to support",
     "np.unmatched": "djay is playing \"{title}\", which isn't in djay's library (streaming?)",
+    "drag.rejected": "djay didn't accept the drop: drag it again, Bud will try another method",
+    "set.music": "Music app (Apple Music library): {n} tracks",
+    "set.musicErr": "Music app library not readable: allow Alpha DJ Bud (Python) in System Settings → Privacy & Security → Media & Apple Music",
   },
 
   it: {
@@ -248,6 +251,9 @@ const I18N = {
     "upd.err.failed": "Aggiornamento non riuscito: tengo la versione attuale",
     "drag.notStarted": "Il trascinamento non è partito — manda questo messaggio",
     "np.unmatched": "djay sta suonando \"{title}\", che non è nella libreria di djay (streaming?)",
+    "drag.rejected": "djay non ha accettato il brano: trascinalo di nuovo, Bud proverà un altro metodo",
+    "set.music": "App Musica (libreria Apple Music): {n} brani",
+    "set.musicErr": "Libreria dell'app Musica non leggibile: consenti Alpha DJ Bud (Python) in Impostazioni di Sistema → Privacy e sicurezza → Media e Apple Music",
   },
 
   es: {
@@ -372,6 +378,9 @@ const I18N = {
     "upd.err.failed": "La actualización falló: se mantiene la versión actual",
     "drag.notStarted": "El arrastre no empezó — envía este mensaje",
     "np.unmatched": "djay está sonando \"{title}\", que no está en la biblioteca de djay (¿streaming?)",
+    "drag.rejected": "djay no aceptó el tema: arrástralo otra vez, Bud probará otro método",
+    "set.music": "App Música (biblioteca Apple Music): {n} temas",
+    "set.musicErr": "Biblioteca de la app Música no legible: permite Alpha DJ Bud (Python) en Ajustes del Sistema → Privacidad y seguridad → Multimedia y Apple Music",
   },
 };
 

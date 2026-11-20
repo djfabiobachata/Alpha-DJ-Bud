@@ -72,6 +72,11 @@ class JsApi:
         from . import native_drag
         return native_drag.status()
 
+    def set_drag_rows(self, rows):
+        from . import native_drag
+        native_drag.set_rows(rows)
+        return True
+
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Alpha DJ Bud")
@@ -109,6 +114,7 @@ def main(argv=None):
             def _after_start():
                 try:
                     from . import native_drag
+                    native_drag.configure(state.home, state.track_file)
                     native_drag.install()
                 except Exception as e:
                     print("drag:", e)

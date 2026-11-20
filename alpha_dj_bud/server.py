@@ -61,8 +61,10 @@ class AppState:
         self.update = {"available": False, "latest": None, "error": None, "checkedAt": None,
                        "installing": False}
         self.window = None  # pywebview window, if any
+        self.music = {"ok": False, "error": None, "tracks": 0}
         self.new_set(save=False)
         self._open_library()
+        threading.Thread(target=self.music_loop, daemon=True).start()
 
     # -- settings ----------------------------------------------------------
     def _load_settings(self):
@@ -186,6 +188,30 @@ class AppState:
         if changed:
             self.version += 1
 
+    # -- Apple Music library -------------------------------------------------
+    def load_music(self):
+        from . import music_library
+        try:
+            data = music_library.load()
+            self.music = {"ok": True, "error": None, "tracks": len(data["tracks"]),
+                          "playlists": len(data["playlists"])}
+            if self.library:
+                with self.lock:
+                    self.library.set_apple_music(data)
+        except music_library.MusicLibraryError as e:
+            self.music = {"ok": False, "error": str(e), "tracks": 0}
+        except Exception as e:
+            self.music = {"ok": False, "error": "failed: %s" % e, "tracks": 0}
+        self.version += 1
+
+    def music_loop(self, every=600):
+        while True:
+            if self.library is not None:
+                self.load_music()
+                if str(self.music.get("error") or "").startswith("notMac"):
+                    return
+            time.sleep(every if self.music.get("ok") else 60)
+
     # -- updates -------------------------------------------------------------
     def check_update(self):
         from . import updater
@@ -308,6 +334,7 @@ class AppState:
                 "autoGenre": self.settings["autoGenre"],
                 "update": self.update,
                 "nowPlayingFile": self.np_source,
+                "music": self.music,
                 "nowPlayingUnmatched": self.np_unmatched,
                 "autoUpdateCheck": self.settings.get("autoUpdateCheck", True),
                 "compact": self.settings["compact"],

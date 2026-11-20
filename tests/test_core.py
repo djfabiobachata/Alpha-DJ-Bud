@@ -375,3 +375,65 @@ class NowPlayingFileTest(unittest.TestCase):
         self._write(db, "Not In Library", "Nobody")
         st.poll()
         self.assertEqual(st.snapshot()["nowPlayingUnmatched"]["title"], "Not In Library")
+
+
+class NativeDragLogicTest(unittest.TestCase):
+    def test_row_lookup_and_method_cycling(self):
+        from alpha_dj_bud import native_drag as nd
+        home = tempfile.mkdtemp()
+        nd.configure(home, lambda tid: "/x/%s.mp3" % tid)
+        nd.set_rows([{"id": "a", "x": 10, "y": 100, "w": 300, "h": 40},
+                     {"id": "b", "x": 10, "y": 144, "w": 300, "h": 40}])
+        self.assertEqual(nd.row_at_point(50, 120), "a")
+        self.assertEqual(nd.row_at_point(50, 150), "b")
+        self.assertIsNone(nd.row_at_point(50, 300))
+        # djay rejects the first method -> next drag uses the next one
+        nd._state["method"] = "url"
+        nd._last["method"] = "url"
+        nd._ended(0)
+        self.assertEqual(nd._state["method"], "files")
+        nd._last["method"] = "files"
+        nd._ended(1)  # accepted: remembered
+        self.assertEqual(nd._state["method"], "files")
+        nd._state["method"] = "url"
+        nd.configure(home, None)  # reload from disk
+        self.assertEqual(nd._state["method"], "files")
+
+
+class AppleMusicMergeTest(unittest.TestCase):
+    def test_music_playlists_tracks_keys_and_files(self):
+        from alpha_dj_bud.music_library import key_bpm_from_text
+        self.assertEqual(key_bpm_from_text("12A - 126 - 01 Es Evidente.m4a"), ("12A", 126.0))
+        self.assertEqual(key_bpm_from_text("12A - Energy 6"), ("12A", None))
+        tmp = tempfile.mkdtemp()
+        lib = DjayLibrary(fixture.build(os.path.join(tmp, "MediaLibrary.db")))
+        lib.refresh(force=True)
+        f = os.path.join(tmp, "12A - 126 - 01 Es Evidente.m4a")
+        open(f, "wb").close()
+        data = {
+            "tracks": {
+                111: {"pid": 111, "title": "Propuesta Indecente", "artist": "Romeo Santos", "bpm": None,
+                      "comments": "", "duration": 200.0, "genre": "", "path": os.path.join(tmp, "prop.mp3")},
+                222: {"pid": 222, "title": "Es Evidente", "artist": "Akai Rojas", "bpm": None,
+                      "comments": "12A - Energy 6", "duration": 249.0, "genre": "Bachata", "path": f},
+            },
+            "playlists": [
+                {"pid": 9, "parent": None, "name": "DJ", "folder": True, "items": []},
+                {"pid": 10, "parent": 9, "name": "BCHTA", "folder": False, "items": [111, 222]},
+            ],
+        }
+        lib.set_apple_music(data)
+        ids = lib.tracks_in("am:pl:10")
+        self.assertEqual(ids[0], "t01")                  # matched to djay's own track (key/BPM from djay)
+        new = lib.get(ids[1])
+        self.assertEqual((new.title, new.key, new.bpm), ("Es Evidente", "12A", 126.0))
+        self.assertEqual(lib.file_path(ids[1]), f)       # draggable file
+        names = [(n["name"], n["depth"]) for n in lib.tree()]
+        self.assertIn(("Apple Music (Musica)", 0), names)
+        self.assertIn(("BCHTA", 2), names)
+        self.assertEqual(lib.tracks_in("am:root"), ids)  # folder includes sub-playlists
+        # NowPlaying from the Music source is found too
+        self.assertEqual(lib.match_now_playing({"title": "Es Evidente", "artist": "Akai Rojas"}), ids[1])
+        # survives a djay database reload
+        lib.refresh(force=True)
+        self.assertEqual(lib.tracks_in("am:pl:10"), ids)

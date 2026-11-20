@@ -1,2 +1,3 @@
 pywebview>=5.0
 certifi
+pyobjc-framework-iTunesLibrary>=10.0 ; sys_platform == "darwin"

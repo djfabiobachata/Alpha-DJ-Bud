@@ -12,7 +12,7 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 2. **Si imposta prima della serata:**
    - **Serata**: Bachata, Salsa, Zouk oppure mista (Bachata + Salsa).
    - **Ora suono**: il genere che stai suonando in quel momento.
-   - **Cartella/Playlist**: una cartella o playlist di djay per ogni genere (le cartelle includono tutte le playlist che contengono). Bud ricorda la scelta per ogni genere.
+   - **Cartella/Playlist**: una cartella o playlist per ogni genere, dalle playlist di djay **o dall'app Musica** (la sorgente "Musica" di djay, elencata sotto "Apple Music (Musica)") (le cartelle includono tutte le playlist che contengono). Bud ricorda la scelta per ogni genere.
 3. **Consiglia i prossimi brani** della cartella scelta, con queste regole:
    - **Key (Camelot Wheel)**. Esempio con 3A in riproduzione: **3A, 3B, 2A, 4A** e **9A, 9B** (salto di 6). Vale allo stesso modo per le key B.
    - **BPM**: lo stesso BPM oppure al massimo **±4** (il valore si può cambiare).
@@ -29,8 +29,9 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 
    Più set suoni, più conta questa parte (indicatore **FIDUCIA**). Con **"Impara dalla cronologia djay"** Bud impara anche dai set che hai già suonato in passato.
 5. **Lingua**: l'app è in inglese; in ⚙ Impostazioni → **Lingua** puoi passare a italiano o spagnolo.
-6. **Trascinamento in djay**: trascina un consiglio su un deck di djay e rilascialo sulla **forma d'onda** del deck (non sul titolo), come faresti con un file dal Finder. Le righe con il segno ⠿ hanno un file locale. I brani in streaming (TIDAL, Apple Music...) non si possono trascinare: caricali da djay.
-7. **Finestra MINI**: con il pulsante **▣ MINI** l'app diventa una finestrella di 360×560 **sempre in primo piano** sopra djay. Mostra solo il genere, il brano in riproduzione e la lista dei consigli.
+6. **Brani dell'app Musica**: Bud legge la libreria dell'app Musica (playlist e file). Key e BPM arrivano dall'analisi di djay quando djay ha già analizzato il brano, altrimenti dalla key Camelot / BPM scritti nei commenti o nel nome del file (es. "12A - 126 - Titolo", "12A - Energy 6" di Mixed In Key). La prima volta macOS chiede il permesso per **Media e Apple Music**. I brani in streaming (Apple Music in streaming, Spotify, TIDAL) non hanno un file e non si possono leggere né trascinare.
+7. **Trascinamento in djay**: trascina un consiglio su un deck di djay e rilascialo sulla **forma d'onda** del deck (non sul titolo), come faresti con un file dal Finder. Le righe con il segno ⠿ hanno un file locale. I brani in streaming (TIDAL, Apple Music...) non si possono trascinare: caricali da djay.
+8. **Finestra MINI**: con il pulsante **▣ MINI** l'app diventa una finestrella di 360×560 **sempre in primo piano** sopra djay. Mostra solo il genere, il brano in riproduzione e la lista dei consigli.
 
 <img src="docs/screenshot-mini.png" width="260" alt="Modalità MINI">
 
@@ -122,7 +123,8 @@ alpha_dj_bud/
   learning.py      apprendimento locale per genere
   server.py        server locale + monitor di djay
   updater.py       aggiornamenti dall'app tramite le release di GitHub
-  native_drag.py   trascinamento del file dalla finestra a djay (macOS)
+  music_library.py libreria dell'app Musica (framework iTunesLibrary)
+  native_drag.py   trascinamento del file dalla finestra a djay (3 metodi, ricorda quello che djay accetta)
   app.py           avvio e finestra (pywebview / browser)
   web/             interfaccia (HTML/CSS/JS)
 tests/             test con una libreria djay finta

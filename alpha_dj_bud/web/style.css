@@ -191,7 +191,7 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
 .opt.chk { justify-content: flex-start; }
 .opt.chk input { accent-color: var(--purple); width: 16px; height: 16px; flex: none; }
 .opt.col { flex-direction: column; align-items: stretch; gap: 4px; }
-.dbinfo { font: 11px var(--mono); color: var(--muted); word-break: break-all; }
+.dbinfo { font: 11px var(--mono); color: var(--muted); word-break: break-all; white-space: pre-line; }
 
 /* ---------- toast ---------- */
 .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--lcd); color: var(--green);
