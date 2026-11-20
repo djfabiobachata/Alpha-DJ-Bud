@@ -203,26 +203,24 @@ $("nextList").onclick = (e) => {
 
 /* ---------------- drag a suggestion onto a djay deck ---------------- */
 const nativeDrag = () => !!(window.pywebview && window.pywebview.api && window.pywebview.api.drag_track);
-let dragArm = null;
+let dragRow = null;
 $("nextList").addEventListener("mousedown", (e) => {
   const row = e.target.closest(".trk.can-drag");
   if (!row || e.button !== 0 || e.target.closest("button") || !nativeDrag()) return;
-  e.preventDefault();                       // native window: macOS file drag
-  dragArm = { id: row.dataset.id, x: e.clientX, y: e.clientY, fired: false, row };
-});
-document.addEventListener("mousemove", (e) => {
-  if (!dragArm || dragArm.fired) return;
-  if (!(e.buttons & 1)) { dragArm = null; return; }
-  if (Math.abs(e.clientX - dragArm.x) + Math.abs(e.clientY - dragArm.y) < 5) return;
-  dragArm.fired = true;
-  dragArm.row.classList.add("dragging");
-  const row = dragArm.row;
-  window.pywebview.api.drag_track(dragArm.id).then((r) => {
-    row.classList.remove("dragging");
-    if (!r || !r.ok) toast(t("drag." + ((r && r.code) || "failed")) + (r && r.path ? " — " + r.path : ""));
+  e.preventDefault();               // native window: macOS takes over the drag
+  dragRow = row;
+  row.classList.add("dragging");
+  window.pywebview.api.drag_track(row.dataset.id).then((r) => {
+    if (!r || !r.ok) {
+      row.classList.remove("dragging");
+      toast(t("drag." + ((r && r.code) || "failed")) + (r && r.path ? " — " + r.path : "") + (r && r.detail ? " (" + r.detail + ")" : ""));
+    }
   }).catch((err) => { row.classList.remove("dragging"); toast(t("drag.failed") + " (" + err + ")"); });
 });
-document.addEventListener("mouseup", () => { if (dragArm) { dragArm.row.classList.remove("dragging"); dragArm = null; } });
+const endDrag = () => { if (dragRow) { dragRow.classList.remove("dragging"); dragRow = null; } };
+document.addEventListener("mouseup", endDrag);
+window.addEventListener("focus", endDrag);
+document.addEventListener("mousemove", (e) => { if (dragRow && !(e.buttons & 1)) endDrag(); });
 $("nextList").addEventListener("dragstart", (e) => {   // browser mode fallback
   const row = e.target.closest(".trk.can-drag");
   if (!row || nativeDrag()) { e.preventDefault(); return; }

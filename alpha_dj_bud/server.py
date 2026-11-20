@@ -313,15 +313,18 @@ class AppState:
         return self.library.file_path(track_id) if self.library else None
 
     def native_drag(self, track_id):
-        """Start a real macOS file drag (pywebview window only)."""
+        """Arm a real macOS file drag (pywebview window only): the drag itself
+        starts on the next native 'mouse dragged' event (see native_drag.py)."""
         path = self.track_file(track_id)
         if not path:
             return {"ok": False, "code": "noFile"}
         if not os.path.exists(path):
             return {"ok": False, "code": "missing", "path": path}
-        from .native_drag import start_file_drag
+        from . import native_drag
         try:
-            start_file_drag(self.window, path)
+            if not native_drag.is_installed() and not native_drag.install():
+                return {"ok": False, "code": "failed", "detail": native_drag.install_error() or "not installed"}
+            native_drag.arm(path)
             return {"ok": True}
         except Exception as e:
             return {"ok": False, "code": "failed", "detail": str(e)}

@@ -102,7 +102,13 @@ def main(argv=None):
             state.window = webview.create_window(
                 "Alpha DJ Bud", url, width=w, height=h, min_size=(320, 420), js_api=JsApi(state),
                 on_top=bool(compact), background_color="#0b0b0f")
-            webview.start()
+            def _after_start():
+                try:
+                    from . import native_drag
+                    native_drag.install()
+                except Exception as e:
+                    print("drag:", e)
+            webview.start(_after_start)
             return
         except ImportError:
             print("pywebview not installed: using the browser in app mode.")
