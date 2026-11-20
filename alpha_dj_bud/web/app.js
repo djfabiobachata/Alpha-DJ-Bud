@@ -67,6 +67,10 @@ function render(s) {
   S = s;
   if (s.language && s.language !== LANG) setLanguage(s.language);
   $("ver").textContent = "v" + s.app.version;
+  const up = s.update || {};
+  $("btnUpdate").hidden = !up.available;
+  $("btnUpdate").textContent = up.installing ? t("upd.installing") : "⬆ v" + (up.latest || "");
+  $("btnUpdate").title = t("upd.available", { v: up.latest || "" });
 
   // status
   const db = s.db;
@@ -256,10 +260,39 @@ $("searchList").onclick = (e) => {
   if (row) { act("current", { id: row.dataset.id }, t("toast.manual")); $("search").value = ""; $("searchList").innerHTML = ""; }
 };
 
+/* updates */
+function updInfoText(u) {
+  if (!u) return "";
+  let txt = t("upd.current", { v: S.app.version });
+  if (u.available) txt += " · " + t("upd.available", { v: u.latest });
+  else if (u.error) txt += " · " + t("upd.err." + u.error);
+  else if (u.checkedAt) txt += " · " + t("upd.upToDate");
+  return txt;
+}
+$("btnUpdate").onclick = async () => {
+  const u = S.update || {};
+  if (u.installing) return;
+  if (!u.installedApp) { toast(t("upd.err.notInstalled")); return; }
+  if (!confirm(t("upd.confirm", { v: u.latest }))) return;
+  $("btnUpdate").textContent = t("upd.installing");
+  try {
+    const r = await api("update-install", {});
+    if (r.ok) toast(t("upd.done", { v: r.version }));
+    else toast(t("upd.err." + r.code) + (r.detail ? " (" + r.detail.slice(0, 120) + ")" : ""));
+  } catch (e) { toast(t("upd.done", { v: u.latest })); }   // app is restarting
+};
+$("btnCheckUpdate").onclick = async () => {
+  $("updInfo").textContent = t("upd.checking");
+  try { const r = await api("update-check", {}); S.update = r; $("updInfo").textContent = updInfoText(r); refresh(true); }
+  catch (e) { $("updInfo").textContent = t("upd.err.network"); }
+};
+
 /* settings */
 $("btnSettings").onclick = () => {
   const o = S.options;
   $("optLang").value = LANG;
+  $("optAutoUpdate").checked = S.autoUpdateCheck !== false;
+  $("updInfo").textContent = updInfoText(S.update);
   $("optDetection").value = S.detection || "fader";
   $("optTol").value = o.bpmTolerance; $("optArtist").value = o.artistWindow; $("optLimit").value = o.limit;
   $("optVariety").value = String(o.variety ?? 50);
@@ -283,6 +316,7 @@ $("btnSaveSettings").onclick = () => {
       variety: parseInt($("optVariety").value, 10),
     },
     keyFromComments: $("optComments").checked, autoGenre: $("optAutoGenre").checked,
+    autoUpdateCheck: $("optAutoUpdate").checked,
   };
   if ($("optDb").value.trim()) body.dbPath = $("optDb").value.trim();
   $("settings").hidden = true;

@@ -47,7 +47,16 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 4. **Consenti l'Accessibilità** (serve per seguire i fader): la prima volta macOS chiede il permesso di controllare il computer. Apri **Impostazioni di Sistema → Privacy e sicurezza → Accessibilità** e attiva la voce che compare (può chiamarsi **Python**: è il motore che fa funzionare Alpha DJ Bud). Poi chiudi e riapri Alpha DJ Bud. Bud *legge* soltanto i fader di djay: non muove mai niente.
 5. Apri djay Pro, scegli il genere e la cartella in Alpha DJ Bud e inizia a suonare.
 
-**Aggiornare**: scarica la nuova versione e rilancia `Install Alpha DJ Bud.command`. Impostazioni e memoria di Bud restano.
+### Aggiornamenti
+
+Dalla v1.5.0 l'app **si aggiorna da sola**: all'avvio e ogni 6 ore controlla su GitHub se c'è una **release** più nuova. Se c'è, in alto compare il pulsante verde **⬆ vX.Y.Z**. Cliccalo, conferma, e in circa 10 secondi l'app si chiude e si riapre con la nuova versione. Non si aggiorna mai da sola durante un set: scegli tu quando.
+
+- Prima di cambiare, la nuova versione viene provata; se non parte, resta quella attuale. La versione precedente resta come copia di sicurezza in `~/Library/Application Support/Alpha DJ Bud/app.old`.
+- ⚙ Impostazioni → Aggiornamenti: attiva/disattiva il controllo automatico o premi **Controlla ora**.
+- Impostazioni e memoria di Bud restano sempre.
+- Contano solo le **release** pubblicate su GitHub (con un tag tipo `v1.6.0`), non ogni modifica al codice.
+
+Se hai una versione precedente alla 1.5.0, scarica questa versione una volta e lancia `Install Alpha DJ Bud.command`.
 
 ### Sbloccare l'installer (avviso di sicurezza di macOS)
 
@@ -115,6 +124,7 @@ alpha_dj_bud/
   recommender.py   filtri e punteggio dei consigli
   learning.py      apprendimento locale per genere
   server.py        server locale + monitor di djay
+  updater.py       aggiornamenti dall'app tramite le release di GitHub
   native_drag.py   trascinamento del file dalla finestra a djay (macOS)
   deck_monitor.py  legge i fader del volume e il crossfader di djay (Accessibilità macOS)
   app.py           avvio e finestra (pywebview / browser)

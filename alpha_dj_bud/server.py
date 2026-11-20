@@ -46,6 +46,7 @@ class AppState:
             "options": dict(recommender.DEFAULTS),
             "keyFromComments": False,
             "autoGenre": True,
+            "autoUpdateCheck": True,
             "detection": "fader",   # "fader" (djay mixer, macOS) or "history"
             "dbPath": db_path,
             "compact": False,
@@ -58,6 +59,8 @@ class AppState:
         self.library = None
         self.version = 0
         self.deck_status = {"ok": False, "mode": "history"}
+        self.update = {"available": False, "latest": None, "error": None, "checkedAt": None,
+                       "installing": False}
         self.window = None  # pywebview window, if any
         self.new_set(save=False)
         self._open_library()
@@ -239,6 +242,44 @@ class AppState:
                 print("faders:", e, file=sys.stderr)
                 time.sleep(3)
 
+    # -- updates -------------------------------------------------------------
+    def check_update(self):
+        from . import updater
+        try:
+            info = updater.check()
+            self.update.update({"available": info["available"], "latest": info["latest"],
+                                "notes": info["notes"], "url": info["url"], "error": None,
+                                "checkedAt": time.time()})
+            self._update_info = info
+        except updater.UpdateError as e:
+            self.update.update({"error": e.code, "checkedAt": time.time()})
+        except Exception as e:
+            self.update.update({"error": "network", "detail": str(e), "checkedAt": time.time()})
+        self.update["installedApp"] = bool(updater.installed_app_dir(self.home))
+        self.version += 1
+        return dict(self.update)
+
+    def update_loop(self, first_delay=5, every=6 * 3600):
+        time.sleep(first_delay)
+        while True:
+            if self.settings.get("autoUpdateCheck", True):
+                self.check_update()
+            time.sleep(every)
+
+    def install_update(self):
+        from . import updater
+        self.update["installing"] = True
+        try:
+            v = updater.install(self.home, getattr(self, "_update_info", None))
+        except updater.UpdateError as e:
+            self.update["installing"] = False
+            return {"ok": False, "code": e.code, "detail": e.detail}
+        except Exception as e:
+            self.update["installing"] = False
+            return {"ok": False, "code": "failed", "detail": str(e)}
+        threading.Timer(1.0, updater.restart, args=(self.home,)).start()
+        return {"ok": True, "version": v}
+
     def monitor(self, interval=1.5):
         while True:
             try:
@@ -294,6 +335,8 @@ class AppState:
                 "autoGenre": self.settings["autoGenre"],
                 "detection": self.settings.get("detection", "fader"),
                 "deckStatus": self.deck_status,
+                "update": self.update,
+                "autoUpdateCheck": self.settings.get("autoUpdateCheck", True),
                 "compact": self.settings["compact"],
                 "hasWindow": self.window is not None,
                 "db": {
@@ -322,6 +365,10 @@ class AppState:
     # -- actions -------------------------------------------------------------
     def action(self, name, body):
         s = self.settings
+        if name == "update-check":     # network: don't hold the lock
+            return self.check_update()
+        if name == "update-install":
+            return self.install_update()
         with self.lock:
             if name == "event":
                 s["event"] = body["event"]
@@ -347,7 +394,7 @@ class AppState:
                     s["language"] = body["language"]
                 if body.get("detection") in ("fader", "history"):
                     s["detection"] = body["detection"]
-                for k in ("keyFromComments", "autoGenre"):
+                for k in ("keyFromComments", "autoGenre", "autoUpdateCheck"):
                     if k in body:
                         s[k] = bool(body[k])
                 if "keyFromComments" in body and self.library:
@@ -488,4 +535,5 @@ def start_server(state, port=0):
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     threading.Thread(target=state.monitor, daemon=True).start()
     threading.Thread(target=state.fader_loop, daemon=True).start()
+    threading.Thread(target=state.update_loop, daemon=True).start()
     return httpd

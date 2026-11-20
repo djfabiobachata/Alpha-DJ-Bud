@@ -48,7 +48,16 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
 4. **Allow Accessibility** (needed to follow the faders): the first time, macOS asks to let the app control the computer. Open **System Settings → Privacy & Security → Accessibility** and turn on the entry that appears (it may be called **Python**: it's the engine running Alpha DJ Bud). Then quit and reopen Alpha DJ Bud. Bud only *reads* djay's faders: it never moves anything.
 5. Open djay Pro, choose the genre and folder in Alpha DJ Bud, and start playing.
 
-**Updating**: download the new version and run `Install Alpha DJ Bud.command` again. Settings and what Bud has learned are kept.
+### Updates
+
+From v1.5.0 the app **updates itself**: at startup and every 6 hours it checks GitHub for a newer **release**. When there is one, a green **⬆ vX.Y.Z** button appears at the top. Click it, confirm, and in about 10 seconds the app closes and reopens with the new version. It never updates by itself during a set: you choose when.
+
+- Before switching, the new version is tested; if it doesn't start, the current one is kept. The previous version is kept as a backup in `~/Library/Application Support/Alpha DJ Bud/app.old`.
+- ⚙ Settings → Updates: turn the automatic check on/off, or **Check now**.
+- Settings and what Bud has learned are always kept.
+- Only published GitHub **releases** count (with a tag like `v1.6.0`), not every change to the code.
+
+If you have a version older than 1.5.0, download this version once and run `Install Alpha DJ Bud.command`.
 
 ### Unblocking the installer (macOS security warning)
 
@@ -116,6 +125,7 @@ alpha_dj_bud/
   recommender.py   suggestion filters and scoring
   learning.py      local learning per genre
   server.py        local server + djay monitor
+  updater.py       in-app updates from GitHub releases
   native_drag.py   macOS file drag from the window onto djay
   deck_monitor.py  reads djay's volume faders and crossfader (macOS Accessibility)
   app.py           launch and window (pywebview / browser)

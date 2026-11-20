@@ -20,6 +20,7 @@
       <div class="led-cell"><i class="led purple" id="ledBrain"></i><b>BRAIN</b></div>
     </div>
     <div class="hdr-btns">
+      <button class="hw update" id="btnUpdate" hidden></button>
       <button class="hw" id="btnSettings" data-i18n-title="hdr.settings">⚙</button>
       <button class="hw accent" id="btnCompact" data-i18n-title="hdr.mini">▣ MINI</button>
     </div>
@@ -133,6 +134,9 @@
     <label class="opt chk"><input type="checkbox" id="optAutoGenre"><span data-i18n="set.autoGenre"></span></label>
     <label class="opt col"><span data-i18n="set.db"></span><input type="text" id="optDb" placeholder="~/Music/djay/djay Media Library.djayMediaLibrary"></label>
     <div class="dbinfo" id="dbInfo"></div>
+    <h2 class="sub" data-i18n="upd.title"></h2>
+    <label class="opt chk"><input type="checkbox" id="optAutoUpdate"><span data-i18n="upd.auto"></span></label>
+    <div class="opt"><span class="dbinfo" id="updInfo"></span><button class="hw small" style="width:auto" id="btnCheckUpdate" data-i18n="upd.checkNow"></button></div>
     <div class="row-btns">
       <button class="hw" id="btnCloseSettings" data-i18n="set.cancel">CANCEL</button>
       <button class="hw accent" id="btnSaveSettings" data-i18n="set.save">SAVE</button>

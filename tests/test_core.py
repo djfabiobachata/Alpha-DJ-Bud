@@ -306,3 +306,79 @@ class FaderTest(unittest.TestCase):
         lib.refresh(force=True)
         self.assertEqual(match_title(lib, ["Romeo Santos", "Propuesta Indecente", "128.0"]), "t01")
         self.assertIsNone(match_title(lib, ["Nothing here"]))
+
+
+class UpdaterTest(unittest.TestCase):
+    def _zip(self, version="9.9.9", broken=False):
+        import io
+        import zipfile
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            for folder in ("alpha_dj_bud", "assets"):
+                for dp, _, files in os.walk(os.path.join(root, folder)):
+                    if "__pycache__" in dp:
+                        continue
+                    for fn in files:
+                        full = os.path.join(dp, fn)
+                        arc = "repo-abc123/" + os.path.relpath(full, root)
+                        data = open(full, "rb").read()
+                        if arc.endswith("alpha_dj_bud/__init__.py"):
+                            data = ('__version__ = "%s"\n' % version).encode()
+                        if broken and arc.endswith("alpha_dj_bud/server.py"):
+                            data = b"this is not python ("
+                        z.writestr(arc, data)
+            z.writestr("repo-abc123/requirements.txt", "")
+        return buf.getvalue()
+
+    def _home(self):
+        home = tempfile.mkdtemp()
+        os.makedirs(os.path.join(home, "app", "alpha_dj_bud"))
+        with open(os.path.join(home, "app", "alpha_dj_bud", "__init__.py"), "w") as f:
+            f.write('__version__ = "1.0.0"\n')
+        with open(os.path.join(home, "app", "requirements.txt"), "w") as f:
+            f.write("")
+        return home
+
+    def test_version_compare(self):
+        from alpha_dj_bud import updater
+        self.assertTrue(updater.is_newer("v1.10.0", "1.9.9"))
+        self.assertFalse(updater.is_newer("v1.4.0", "1.4.0"))
+        self.assertFalse(updater.is_newer("1.3.1", "1.4.0"))
+
+    def test_install_swaps_code_and_keeps_backup(self):
+        from alpha_dj_bud import updater
+        home = self._home()
+        v = updater.install(home, info={"available": True}, zip_bytes=self._zip("9.9.9"))
+        self.assertEqual(v, "9.9.9")
+        with open(os.path.join(home, "app", "alpha_dj_bud", "__init__.py")) as f:
+            self.assertIn("9.9.9", f.read())
+        with open(os.path.join(home, "app.old", "alpha_dj_bud", "__init__.py")) as f:
+            self.assertIn("1.0.0", f.read())
+        self.assertTrue(os.path.isfile(os.path.join(home, "app", "assets", "AppIcon.icns")))
+
+    def test_broken_update_keeps_current_version(self):
+        from alpha_dj_bud import updater
+        home = self._home()
+        with self.assertRaises(updater.UpdateError) as cm:
+            updater.install(home, info={"available": True}, zip_bytes=self._zip(broken=True))
+        self.assertEqual(cm.exception.code, "verify")
+        with open(os.path.join(home, "app", "alpha_dj_bud", "__init__.py")) as f:
+            self.assertIn("1.0.0", f.read())
+
+    def test_zip_with_escaping_paths_is_refused(self):
+        import io
+        import zipfile
+        from alpha_dj_bud import updater
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("../evil.py", "x")
+        with self.assertRaises(updater.UpdateError) as cm:
+            updater.install(self._home(), info={"available": True}, zip_bytes=buf.getvalue())
+        self.assertEqual(cm.exception.code, "badZip")
+
+    def test_not_installed_app_refuses_network_update(self):
+        from alpha_dj_bud import updater
+        with self.assertRaises(updater.UpdateError) as cm:
+            updater.install(tempfile.mkdtemp())
+        self.assertEqual(cm.exception.code, "notInstalled")
