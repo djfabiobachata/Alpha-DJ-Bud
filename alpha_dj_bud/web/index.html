@@ -16,6 +16,7 @@
     <div class="lcd lcd-wide" id="statusLcd" data-i18n="status.starting">Starting…</div>
     <div class="leds">
       <div class="led-cell"><i class="led" id="ledDjay"></i><b>DJAY</b></div>
+      <div class="led-cell" id="cellFader"><i class="led" id="ledFader"></i><b>FADER</b></div>
       <div class="led-cell"><i class="led purple" id="ledBrain"></i><b>BRAIN</b></div>
     </div>
     <div class="hdr-btns">
@@ -106,6 +107,13 @@
         <option value="es">Español</option>
       </select>
     </label>
+    <label class="opt"><span data-i18n="det.title"></span>
+      <select id="optDetection" class="lang-select">
+        <option value="fader" data-i18n="det.fader"></option>
+        <option value="history" data-i18n="det.history"></option>
+      </select>
+    </label>
+    <p class="hint" data-i18n="det.hint"></p>
     <label class="opt"><span data-i18n="set.tol"></span><input type="number" min="0" max="20" step="0.5" id="optTol"></label>
     <label class="opt"><span data-i18n="set.artist"></span><input type="number" min="0" max="10" step="1" id="optArtist"></label>
     <label class="opt"><span data-i18n="set.variety"></span>

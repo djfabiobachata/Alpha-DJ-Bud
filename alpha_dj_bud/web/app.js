@@ -73,11 +73,17 @@ function render(s) {
   const gname = genreName(s.genre);
   $("ledDjay").className = "led " + (db.ok ? "on" : "err");
   $("ledBrain").className = "led purple" + (s.brain.transitions ? " on" : "");
+  const ds = s.deckStatus || {};
+  const faderOn = s.detection === "fader";
+  $("cellFader").style.display = faderOn ? "" : "none";
+  $("ledFader").className = "led " + (ds.ok ? "on" : ds.error ? "warn" : "");
+  $("cellFader").title = ds.ok ? t("det.ok") : ds.error ? t("det.err." + ds.error) : "";
   let status;
   if (!db.ok) status = "⚠ " + (db.error === "notFound" ? t("status.notFound") : (db.error || t("status.noLib")));
   else if (!s.playlistByGenre[s.genre]) status = t("status.choose", { genre: gname });
   else if (!s.current) status = t("status.lib", { n: db.tracks });
   else status = t("status.playing", { genre: gname.toUpperCase(), pool: s.poolSize, played: s.played.length });
+  if (db.ok && faderOn && ds.error === "noPermission") status = "⚠ " + t("det.err.noPermission");
   $("statusLcd").textContent = status;
 
   // setup
@@ -99,7 +105,7 @@ function render(s) {
   $("nowKey").style.color = c && c.key ? keyColor(c.key) : "";
   $("nowMusical").textContent = c && c.musicalKey ? c.musicalKey : "";
   $("nowBpm").textContent = c && c.bpm ? c.bpm.toFixed(1) : "---";
-  $("nowDeck").textContent = c && c.deck != null ? t("now.deck") + " " + (c.deck + 1) : "";
+  $("nowDeck").textContent = c && c.deck != null ? t("now.deck") + " " + (c.deck + 1) + (c.onAir ? " · ON AIR" : "") : "";
   $("nowSource").textContent = c ? (c.source === "djay" ? t("now.fromDjay") : t("now.manual")) + (c.inPool ? "" : t("now.outside")) : "";
   drawWheel(c && c.key);
 
@@ -254,6 +260,7 @@ $("searchList").onclick = (e) => {
 $("btnSettings").onclick = () => {
   const o = S.options;
   $("optLang").value = LANG;
+  $("optDetection").value = S.detection || "fader";
   $("optTol").value = o.bpmTolerance; $("optArtist").value = o.artistWindow; $("optLimit").value = o.limit;
   $("optVariety").value = String(o.variety ?? 50);
   $("optTritone").checked = o.includeTritone; $("optHalf").checked = o.halfDouble; $("optReplays").checked = o.avoidReplays;
@@ -268,6 +275,7 @@ $("btnCloseSettings").onclick = () => { $("settings").hidden = true; if (S) setL
 $("btnSaveSettings").onclick = () => {
   const body = {
     language: $("optLang").value,
+    detection: $("optDetection").value,
     options: {
       bpmTolerance: parseFloat($("optTol").value) || 0, artistWindow: parseInt($("optArtist").value, 10) || 0,
       limit: parseInt($("optLimit").value, 10) || 15, includeTritone: $("optTritone").checked,
