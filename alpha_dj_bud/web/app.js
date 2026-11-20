@@ -136,16 +136,14 @@ function renderSuggestions(s) {
       const d = tr.bpmDelta, dcls = d > 0.05 ? "up" : d < -0.05 ? "down" : "";
       const ds = (d > 0 ? "+" : "") + d.toFixed(1);
       const why = tr.reasons && tr.reasons.length ? `<i>★ ${esc(tr.reasons.map(reasonText).join(" · "))}</i>` : "";
-      return `<div class="trk${i < 3 ? " top" : ""}" data-id="${tr.id}">
+      return `<div class="trk${i < 3 ? " top" : ""}${tr.hasFile ? " can-drag" : " no-file"}" data-id="${tr.id}"
+        ${tr.hasFile ? 'draggable="true"' : ""} title="${esc(tr.hasFile ? t("drag.hint") : t("drag.noFile"))}">
         <div class="rank">${i + 1}</div>
         <div><span class="badge" style="background:${keyColor(tr.key)}">${tr.key}</span></div>
         <div class="ti"><b title="${esc(tr.title)}">${esc(tr.title)}</b><span>${esc(tr.artist || "—")} ${why}</span></div>
         <div class="bpm">${tr.bpm.toFixed(1)}<small class="${dcls}">${ds}</small></div>
         <div class="score"><div class="meter"><i style="width:${tr.score}%"></i></div><div class="rel">${esc(relName(tr.relation))}</div></div>
         <div class="acts">
-          <button class="deck d1" data-deck="1" title="${esc(t("next.deck1"))}">1</button>
-          <button class="deck d2" data-deck="2" title="${esc(t("next.deck2"))}">2</button>
-          <button class="play" title="${esc(t("next.play"))}">▶</button>
           <button class="like" title="${esc(t("next.like"))}">♥</button>
           <button class="hide" title="${esc(t("next.hide"))}">✕</button>
         </div></div>`;
@@ -199,20 +197,44 @@ $("nextList").onclick = (e) => {
   const row = e.target.closest(".trk"); const b = e.target.closest("button");
   if (!row || !b) return;
   const id = row.dataset.id;
-  if (b.classList.contains("deck")) loadDeck(id, parseInt(b.dataset.deck, 10), b);
-  else if (b.classList.contains("play")) act("current", { id });
-  else if (b.classList.contains("like")) act("like", { id, value: 1 }, t("toast.liked"));
+  if (b.classList.contains("like")) act("like", { id, value: 1 }, t("toast.liked"));
   else if (b.classList.contains("hide")) act("hide", { id });
 };
 
-async function loadDeck(id, deck, btn) {
-  btn.classList.add("busy");
-  try {
-    const r = await api("load", { id, deck });
-    toast(r.ok ? t("load.ok", { deck, title: r.title }) : t("load." + r.code) + (r.detail && r.code === "failed" ? " (" + r.detail + ")" : ""));
-  } catch (e) { toast(t("toast.error", { e: e.message })); }
-  btn.classList.remove("busy");
-}
+/* ---------------- drag a suggestion onto a djay deck ---------------- */
+const nativeDrag = () => !!(window.pywebview && window.pywebview.api && window.pywebview.api.drag_track);
+let dragArm = null;
+$("nextList").addEventListener("mousedown", (e) => {
+  const row = e.target.closest(".trk.can-drag");
+  if (!row || e.button !== 0 || e.target.closest("button") || !nativeDrag()) return;
+  e.preventDefault();                       // native window: macOS file drag
+  dragArm = { id: row.dataset.id, x: e.clientX, y: e.clientY, fired: false, row };
+});
+document.addEventListener("mousemove", (e) => {
+  if (!dragArm || dragArm.fired) return;
+  if (!(e.buttons & 1)) { dragArm = null; return; }
+  if (Math.abs(e.clientX - dragArm.x) + Math.abs(e.clientY - dragArm.y) < 5) return;
+  dragArm.fired = true;
+  dragArm.row.classList.add("dragging");
+  const row = dragArm.row;
+  window.pywebview.api.drag_track(dragArm.id).then((r) => {
+    row.classList.remove("dragging");
+    if (!r || !r.ok) toast(t("drag." + ((r && r.code) || "failed")) + (r && r.path ? " — " + r.path : ""));
+  }).catch((err) => { row.classList.remove("dragging"); toast(t("drag.failed") + " (" + err + ")"); });
+});
+document.addEventListener("mouseup", () => { if (dragArm) { dragArm.row.classList.remove("dragging"); dragArm = null; } });
+$("nextList").addEventListener("dragstart", (e) => {   // browser mode fallback
+  const row = e.target.closest(".trk.can-drag");
+  if (!row || nativeDrag()) { e.preventDefault(); return; }
+  const tr = S.suggestions.find((x) => x.id === row.dataset.id);
+  if (!tr || !tr.fileUrl) { e.preventDefault(); return; }
+  const path = decodeURIComponent(tr.fileUrl.replace("file://", ""));
+  const name = path.split("/").pop();
+  e.dataTransfer.effectAllowed = "copy";
+  e.dataTransfer.setData("text/uri-list", tr.fileUrl);
+  e.dataTransfer.setData("text/plain", path);
+  e.dataTransfer.setData("DownloadURL", `audio/mpeg:${name}:${location.origin}/api/file?id=${encodeURIComponent(tr.id)}`);
+});
 
 let searchTimer;
 $("search").oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(doSearch, 200); };

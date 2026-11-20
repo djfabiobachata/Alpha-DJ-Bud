@@ -10,7 +10,9 @@ import glob
 import os
 import re
 import sqlite3
+import sys
 import time
+from urllib.parse import unquote, urlparse
 
 from . import camelot, tsaf
 
@@ -73,6 +75,35 @@ def bpm_from_text(*texts):
     return None
 
 
+def _resolve_macos(loc):
+    if sys.platform != "darwin":
+        return None
+    try:
+        from Foundation import NSURL, NSData
+    except ImportError:
+        return None
+    for u in loc["uris"]:
+        if "/.file/id=" in u:
+            try:
+                url = NSURL.URLWithString_(u)
+                fp = url.filePathURL() if url is not None else None
+                if fp is not None and fp.path():
+                    return str(fp.path())
+            except Exception:
+                pass
+    if loc.get("bookmark"):
+        try:
+            data = NSData.dataWithBytes_length_(loc["bookmark"], len(loc["bookmark"]))
+            # 1<<8 = without UI, 1<<9 = without mounting
+            url, _stale, _err = NSURL.URLByResolvingBookmarkData_options_relativeToURL_bookmarkDataIsStale_error_(
+                data, (1 << 8) | (1 << 9), None, None, None)
+            if url is not None and url.path():
+                return str(url.path())
+        except Exception:
+            pass
+    return None
+
+
 class Track:
     __slots__ = ("id", "title", "artist", "bpm", "key", "duration",
                  "comments", "genre", "key_source", "djay_title")
@@ -115,6 +146,8 @@ class DjayLibrary:
         self.loaded_mtime = 0
         self.error = None
         self._history_cache = {}
+        self.locations = {}
+        self._path_cache = {}
 
     # -- low level -------------------------------------------------------
     def _connect(self):
@@ -169,6 +202,13 @@ class DjayLibrary:
             tracks[uid] = self._make_track(uid, items.get(uid), analyzed.get(uid),
                                            artists, genres, manual_bpm.get(uid))
         self.tracks = tracks
+        self.locations = {}
+        self._path_cache = {}
+        for uid, loc in self._collection(con, "localMediaItemLocations").items():
+            self.locations[uid] = {
+                "uris": [str(u) for u in (loc.get("sourceURIs") or [])],
+                "bookmark": loc.get("urlBookmarkData") if isinstance(loc.get("urlBookmarkData"), bytes) else None,
+            }
 
         playlist_items = self._collection(con, "mediaItemPlaylistItems")
         raw = self._collection(con, "mediaItemPlaylists")
@@ -347,6 +387,38 @@ class DjayLibrary:
     def now_playing(self, max_age_hours=12):
         h = self.history(since_unix=time.time() - max_age_hours * 3600, limit=50)
         return h[-1] if h else None
+
+    def has_file(self, track_id):
+        loc = self.locations.get(track_id)
+        return bool(loc and (loc["bookmark"] or any(u.startswith("file:") for u in loc["uris"])))
+
+    def file_path(self, track_id):
+        """Local path of the track's audio file, or None (streaming / unknown).
+        Plain file:// URLs are decoded directly; on macOS, file-reference URLs
+        (file:///.file/id=...) and djay's bookmarks are resolved with Foundation."""
+        if track_id in self._path_cache:
+            cached = self._path_cache[track_id]
+            if cached is None or os.path.exists(cached):
+                return cached
+        path = self._file_path(track_id)
+        self._path_cache[track_id] = path
+        return path
+
+    def _file_path(self, track_id):
+        loc = self.locations.get(track_id)
+        if not loc:
+            return None
+        plain = [u for u in loc["uris"] if u.startswith("file:") and "/.file/id=" not in u]
+        for u in plain:
+            path = unquote(urlparse(u).path)
+            if os.path.exists(path):
+                return path
+        resolved = _resolve_macos(loc)
+        if resolved:
+            return resolved
+        if plain:  # e.g. external drive not mounted: still return the path
+            return unquote(urlparse(plain[0]).path)
+        return None
 
     def get(self, track_id):
         return self.tracks.get(track_id)

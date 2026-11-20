@@ -30,7 +30,7 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
    - the ♥ and ✕ you give.
 
    The more sets you play, the more this counts (**CONFIDENCE** meter). **"Learn from djay history"** also learns from sets you played in the past.
-5. **Load into djay with one click**: on each suggestion, **1** loads the track on djay's Deck 1 and **2** on Deck 2. Bud searches the track in djay's library and uses djay's own shortcuts (⌘← / ⌘→).
+5. **Drag into djay**: drag a suggestion straight onto a djay deck, just like dragging a file from the Finder. Rows with the ⠿ mark have a local file. Streaming tracks (TIDAL, Apple Music...) can't be dragged: load them from djay.
 6. **MINI window**: the **▣ MINI** button turns the app into a small 360×560 window that **stays on top** of djay. It shows only the genre, the playing track and the suggestions.
 
 <img src="docs/screenshot-mini.png" width="260" alt="MINI mode">
@@ -43,8 +43,7 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
    - The installer needs internet once, to download the components.
    - If Python 3 is missing, open Terminal and run `xcode-select --install`, then run the installer again.
 3. The installer creates **Alpha DJ Bud.app** in your **Applications** folder (`~/Applications`), with its own name and icon, and opens it. Drag it to the Dock to keep it handy. After that you can delete the downloaded folder.
-4. **First time you use the 1 / 2 buttons**, macOS asks to allow control of the computer. Open **System Settings → Privacy & Security → Accessibility** and turn on the entry that appears (it may be called **Python**: it's the engine running Alpha DJ Bud). Then quit and reopen Alpha DJ Bud.
-5. Open djay Pro, choose the genre and folder in Alpha DJ Bud, and start playing.
+4. Open djay Pro, choose the genre and folder in Alpha DJ Bud, and start playing.
 
 **Updating**: download the new version and run `Install Alpha DJ Bud.command` again. Settings and what Bud has learned are kept.
 
@@ -87,8 +86,8 @@ python3 -m alpha_dj_bud.app --db "/path/to/MediaLibrary.db"
 
 | Action | How |
 |---|---|
-| Load into djay | **1** / **2** on a suggestion → djay Deck 1 / Deck 2 |
-| Playing track | Automatic from djay (deck shown), or **▶** on a suggestion, or search in "Pick manually" |
+| Load into djay | Drag a suggestion onto a djay deck |
+| Playing track | Automatic from djay (deck shown). If needed, set it with the search in "Set now playing manually" |
 | Like / don't suggest | **♥** / **✕** on the suggestion row |
 | End of the night | **END SET**: saves what Bud has learned |
 | New set | **NEW SET**: resets played and hidden tracks |
@@ -114,7 +113,7 @@ alpha_dj_bud/
   recommender.py   suggestion filters and scoring
   learning.py      local learning per genre
   server.py        local server + djay monitor
-  djay_control.py  load a track on djay Deck 1/2 (macOS Accessibility)
+  native_drag.py   macOS file drag from the window onto djay
   app.py           launch and window (pywebview / browser)
   web/             interface (HTML/CSS/JS, translations in i18n.js)
 assets/            app icon
@@ -131,5 +130,5 @@ To add a language, copy the `en` block in `alpha_dj_bud/web/i18n.js`, translate 
 - **djay Pro for macOS** only (on Windows djay doesn't expose its data the same way).
 - djay's database format is undocumented. A djay update could change it; in that case the **DJAY** light turns red.
 - The playing track comes from djay's history, so it appears when djay logs it as played.
-- Loading with **1 / 2** works only for decks 1 and 2 (djay has no shortcuts for decks 3–4), and only if the track's file is available (an external drive must be connected).
+- Drag works only for tracks with a local file, and the drive holding it must be connected. The full drag to djay needs the native window (installed app); in the browser it depends on the browser.
 - With the native window, the Dock and the menu bar show "Alpha DJ Bud" and its icon; in a few places macOS may still say "Python", because that's the engine running the app.

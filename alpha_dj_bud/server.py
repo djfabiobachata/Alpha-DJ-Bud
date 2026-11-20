@@ -6,7 +6,7 @@ import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 from . import __version__, recommender
 from .djay_library import DjayLibrary, find_database
@@ -196,6 +196,10 @@ class AppState:
                     lib, current, pool, self.played, self.brain, genre,
                     self.settings["options"], self.hidden, self.set_id)
             self.shown = [s["id"] for s in suggestions]
+            for item in suggestions:
+                fp = lib.file_path(item["id"]) if lib.has_file(item["id"]) else None
+                item["hasFile"] = bool(fp)
+                item["fileUrl"] = ("file://" + quote(fp)) if fp else None
             played = [lib.get(t).to_dict() for t in self.played[-12:] if lib and lib.get(t)]
             cur = current.to_dict() if current else None
             if cur:
@@ -251,8 +255,6 @@ class AppState:
     # -- actions -------------------------------------------------------------
     def action(self, name, body):
         s = self.settings
-        if name == "load":  # slow (talks to djay): don't hold the lock
-            return self.load_to_deck(body["id"], int(body.get("deck", 1)))
         with self.lock:
             if name == "event":
                 s["event"] = body["event"]
@@ -307,17 +309,20 @@ class AppState:
             self.save_settings()
             return {"ok": True}
 
-    def load_to_deck(self, track_id, deck):
-        """Load a track onto djay's deck 1/2. Runs outside the state lock."""
-        t = self.library.get(track_id) if self.library else None
-        if t is None:
-            return {"ok": False, "code": "notFound"}
-        from .djay_control import LoadError, load_track
+    def track_file(self, track_id):
+        return self.library.file_path(track_id) if self.library else None
+
+    def native_drag(self, track_id):
+        """Start a real macOS file drag (pywebview window only)."""
+        path = self.track_file(track_id)
+        if not path:
+            return {"ok": False, "code": "noFile"}
+        if not os.path.exists(path):
+            return {"ok": False, "code": "missing", "path": path}
+        from .native_drag import start_file_drag
         try:
-            load_track(t.djay_title, t.artist, deck)
-            return {"ok": True, "deck": deck, "title": t.title}
-        except LoadError as e:
-            return {"ok": False, "code": e.code, "detail": e.detail}
+            start_file_drag(self.window, path)
+            return {"ok": True}
         except Exception as e:
             return {"ok": False, "code": "failed", "detail": str(e)}
 
@@ -358,6 +363,27 @@ def make_handler(state):
             if u.path == "/api/search":
                 q = parse_qs(u.query)
                 return self._send(200, state.search(q.get("q", [""])[0], q.get("all", ["0"])[0] == "1"))
+            if u.path == "/api/fileurl":
+                tid = parse_qs(u.query).get("id", [""])[0]
+                p = state.track_file(tid)
+                return self._send(200, {"path": p, "exists": bool(p and os.path.exists(p))})
+            if u.path == "/api/file":
+                tid = parse_qs(u.query).get("id", [""])[0]
+                p = state.track_file(tid)
+                if not p or not os.path.isfile(p):
+                    return self._send(404, {"error": "file not found"})
+                ctype = mimetypes.guess_type(p)[0] or "application/octet-stream"
+                self.send_response(200)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Content-Length", str(os.path.getsize(p)))
+                self.end_headers()
+                with open(p, "rb") as f:
+                    while True:
+                        chunk = f.read(1 << 16)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                return
             path = "index.html" if u.path in ("", "/") else u.path.lstrip("/")
             full = os.path.normpath(os.path.join(WEB_DIR, path))
             if not full.startswith(WEB_DIR) or not os.path.isfile(full):

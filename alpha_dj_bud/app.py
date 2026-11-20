@@ -59,6 +59,16 @@ def brand_macos_process():
         print("branding:", e)
 
 
+class JsApi:
+    """Functions the page can call through window.pywebview.api (native window)."""
+
+    def __init__(self, state):
+        self._state = state
+
+    def drag_track(self, track_id):
+        return self._state.native_drag(track_id)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Alpha DJ Bud")
     ap.add_argument("--db", help="path to MediaLibrary.db (optional)")
@@ -90,7 +100,7 @@ def main(argv=None):
             compact = state.settings.get("compact")
             w, h = (360, 560) if compact else (1080, 760)
             state.window = webview.create_window(
-                "Alpha DJ Bud", url, width=w, height=h, min_size=(320, 420),
+                "Alpha DJ Bud", url, width=w, height=h, min_size=(320, 420), js_api=JsApi(state),
                 on_top=bool(compact), background_color="#0b0b0f")
             webview.start()
             return

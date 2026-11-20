@@ -238,12 +238,22 @@ class MixedNightAndLoadTest(unittest.TestCase):
         self.assertEqual(snap["genre"], "bachata")
         self.assertEqual(snap["mixedGenres"], ["bachata", "salsa"])
 
-    def test_load_reports_a_clear_error_off_mac(self):
+    def test_suggestions_carry_the_audio_file_for_dragging(self):
         tmp = tempfile.mkdtemp()
+        audio = os.path.join(tmp, "Música ñ")  # spaces and accents in the path
+        os.makedirs(audio)
         os.environ["ALPHA_DJ_BUD_HOME"] = os.path.join(tmp, "home")
         from alpha_dj_bud.server import AppState
-        st = AppState(fixture.build(os.path.join(tmp, "MediaLibrary.db")))
-        r = st.action("load", {"id": "t03", "deck": 2})
-        self.assertFalse(r["ok"])
-        self.assertIn(r["code"], ("notMac", "noPyobjc"))
-        self.assertEqual(st.action("load", {"id": "nope", "deck": 1})["code"], "notFound")
+        st = AppState(fixture.build(os.path.join(tmp, "MediaLibrary.db"), audio_dir=audio))
+        st.action("playlist", {"id": "F-BACHATA"})
+        st.action("current", {"id": "t01"})
+        sug = st.snapshot()["suggestions"]
+        self.assertTrue(sug and all(s["hasFile"] for s in sug))
+        from urllib.parse import unquote
+        path = unquote(sug[0]["fileUrl"][len("file://"):])
+        self.assertTrue(os.path.isfile(path), path)
+        self.assertEqual(st.track_file(sug[0]["id"]), path)
+        self.assertIsNone(st.track_file("t11"))
+        # no native window here: drag reports an error instead of crashing
+        self.assertFalse(st.native_drag(sug[0]["id"])["ok"])
+        self.assertEqual(st.native_drag("t11")["code"], "noFile")

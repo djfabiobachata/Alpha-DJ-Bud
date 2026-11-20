@@ -29,7 +29,7 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 
    Più set suoni, più conta questa parte (indicatore **FIDUCIA**). Con **"Impara dalla cronologia djay"** Bud impara anche dai set che hai già suonato in passato.
 5. **Lingua**: l'app è in inglese; in ⚙ Impostazioni → **Lingua** puoi passare a italiano o spagnolo.
-6. **Caricamento in djay con un clic**: su ogni consiglio, **1** carica il brano nel Deck 1 di djay e **2** nel Deck 2. Bud cerca il brano nella libreria di djay e usa le scorciatoie di djay (⌘← / ⌘→).
+6. **Trascinamento in djay**: trascina un consiglio direttamente su un deck di djay, come faresti con un file dal Finder. Le righe con il segno ⠿ hanno un file locale. I brani in streaming (TIDAL, Apple Music...) non si possono trascinare: caricali da djay.
 7. **Finestra MINI**: con il pulsante **▣ MINI** l'app diventa una finestrella di 360×560 **sempre in primo piano** sopra djay. Mostra solo il genere, il brano in riproduzione e la lista dei consigli.
 
 <img src="docs/screenshot-mini.png" width="260" alt="Modalità MINI">
@@ -42,8 +42,7 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
    - L'installer ha bisogno di internet una volta, per scaricare i componenti.
    - Se manca Python 3, apri il Terminale, lancia `xcode-select --install` e poi rilancia l'installer.
 3. L'installer crea **Alpha DJ Bud.app** nella cartella **Applicazioni** del tuo utente (`~/Applications`), con nome e icona propri, e la apre. Trascinala nel Dock per averla sempre a portata di mano. Dopo puoi cancellare la cartella scaricata.
-4. **La prima volta che usi i pulsanti 1 / 2**, macOS chiede il permesso di controllare il computer. Apri **Impostazioni di Sistema → Privacy e sicurezza → Accessibilità** e attiva la voce che compare (può chiamarsi **Python**: è il motore che fa funzionare Alpha DJ Bud). Poi chiudi e riapri Alpha DJ Bud.
-5. Apri djay Pro, scegli il genere e la cartella in Alpha DJ Bud e inizia a suonare.
+4. Apri djay Pro, scegli il genere e la cartella in Alpha DJ Bud e inizia a suonare.
 
 **Aggiornare**: scarica la nuova versione e rilancia `Install Alpha DJ Bud.command`. Impostazioni e memoria di Bud restano.
 
@@ -86,8 +85,8 @@ python3 -m alpha_dj_bud.app --db "/percorso/MediaLibrary.db"
 
 | Azione | Come |
 |---|---|
-| Caricare in djay | **1** / **2** su un consiglio → Deck 1 / Deck 2 di djay |
-| Brano in riproduzione | Automatico da djay (deck mostrato), oppure **▶** su un consiglio o ricerca in "Scegli a mano" |
+| Caricare in djay | Trascina un consiglio su un deck di djay |
+| Brano in riproduzione | Automatico da djay (con il deck). Se serve, impostalo con la ricerca in "Imposta a mano il brano in riproduzione" |
 | Mi piace / non proporre | **♥** / **✕** sulla riga del consiglio |
 | Fine serata | **FINE SET**: salva ciò che Bud ha imparato |
 | Nuovo set | **NUOVO SET**: azzera brani suonati ed esclusi |
@@ -113,7 +112,7 @@ alpha_dj_bud/
   recommender.py   filtri e punteggio dei consigli
   learning.py      apprendimento locale per genere
   server.py        server locale + monitor di djay
-  djay_control.py  caricamento nel Deck 1/2 di djay (Accessibilità macOS)
+  native_drag.py   trascinamento del file dalla finestra a djay (macOS)
   app.py           avvio e finestra (pywebview / browser)
   web/             interfaccia (HTML/CSS/JS)
 tests/             test con una libreria djay finta
@@ -126,5 +125,5 @@ Test: `python3 -m unittest discover -s tests -t .`
 - Solo **djay Pro per macOS** (su Windows djay non espone i dati allo stesso modo).
 - Il formato del database di djay non è documentato. Un aggiornamento di djay potrebbe cambiarlo; in quel caso la spia **DJAY** diventa rossa.
 - Il brano in riproduzione arriva dalla cronologia di djay, quindi compare quando djay lo registra come suonato.
-- Il caricamento con **1 / 2** funziona solo per i deck 1 e 2 (djay non ha scorciatoie per i deck 3–4) e solo se il file del brano è disponibile (il disco esterno deve essere collegato).
+- Il trascinamento funziona solo per i brani con un file locale, e il disco che lo contiene deve essere collegato. Il trascinamento completo verso djay richiede la finestra nativa (app installata); nel browser dipende dal browser.
 - Con la finestra nativa, Dock e barra dei menu mostrano "Alpha DJ Bud" e la sua icona; in qualche punto macOS può ancora scrivere "Python", perché è il motore che fa girare l'app.

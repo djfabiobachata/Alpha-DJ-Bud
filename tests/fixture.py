@@ -95,7 +95,7 @@ TRACKS = [
 ]
 
 
-def build(path, with_history=True):
+def build(path, with_history=True, audio_dir=None):
     if os.path.exists(path):
         os.remove(path)
     con = sqlite3.connect(path)
@@ -117,6 +117,13 @@ def build(path, with_history=True):
         if cam:
             ad["keySignatureIndex"] = CAM_TO_IDX[cam]
         put("mediaItemAnalyzedData", tid, ad)
+        if audio_dir and tid != "t11":  # t11 = streaming track, no local file
+            from urllib.parse import quote
+            f = os.path.join(audio_dir, "%s - %s.mp3" % (artist, title))
+            with open(f, "wb") as fh:
+                fh.write(b"ID3fake")
+            put("localMediaItemLocations", tid, {"_class": "ADCMediaItemLocation", "uuid": tid,
+                                                  "sourceURIs": ["file://" + quote(f)]})
 
     def playlist(uid, name, parent, items=None, children=None):
         o = {"_class": "ADCMediaItemPlaylist", "uuid": uid, "name": name}

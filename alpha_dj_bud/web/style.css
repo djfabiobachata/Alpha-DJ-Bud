@@ -144,11 +144,12 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
   background: linear-gradient(180deg, #332c3f, #1f1a27); color: #cfc6dd; font-size: 12px; }
 .acts button:hover { color: var(--green); }
 .acts button.like:hover { color: var(--purple); }
-.acts button.deck { font: 800 12px var(--mono); color: #04110a; background: linear-gradient(180deg, #7dffb6, var(--green)); }
-.acts button.deck.d2 { color: #fff; background: linear-gradient(180deg, #a77cff, var(--purple-deep)); }
-.acts button.deck:hover { filter: brightness(1.2); color: #04110a; }
-.acts button.deck.d2:hover { color: #fff; }
-.acts button.busy { opacity: .4; pointer-events: none; }
+.trk.can-drag { cursor: grab; user-select: none; -webkit-user-select: none; }
+.trk.can-drag:active { cursor: grabbing; }
+.trk.can-drag .rank::before { content: "⠿"; display: block; font-size: 11px; color: var(--edge); line-height: 1; }
+.trk.dragging { opacity: .5; border-color: var(--green); }
+.trk.no-file { opacity: .75; }
+.drag-hint { text-align: center; font: 11px var(--mono); color: var(--green-dim); margin: -6px 0 6px; }
 .hint { margin: -4px 0 8px; font-size: 11px; color: var(--muted); }
 .empty { color: var(--muted); text-align: center; padding: 26px 10px; font-size: 13px; }
 .empty b { color: var(--text); }
@@ -224,11 +225,12 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
   .readout > span, .readout small { display: none; }
   .seg7 { font-size: 20px; padding: 4px; margin: 0; }
   .next h2 { margin-bottom: 6px; font-size: 12px; }
-  .trk { grid-template-columns: 38px minmax(0, 1fr) 50px auto; gap: 6px; padding: 5px 6px; }
+  .trk { grid-template-columns: 38px minmax(0, 1fr) 50px; gap: 6px; padding: 5px 6px; }
   .trk .rank, .trk .score { display: none; }
   .badge { min-width: 36px; font-size: 12px; }
   .trk .bpm { font-size: 12px; }
-  .acts button.like, .acts button.hide, .acts button.play { display: none; }
+  .acts { display: none; }
+  .drag-hint { margin: -4px 0 4px; }
   .filter-note { display: none; }
 }
 .opt select.lang-select { width: 150px; }
