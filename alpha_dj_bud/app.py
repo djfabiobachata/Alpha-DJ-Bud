@@ -36,10 +36,10 @@ def _open_chrome_app(url, compact):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Alpha DJ Bud")
-    ap.add_argument("--db", help="percorso di MediaLibrary.db (facoltativo)")
+    ap.add_argument("--db", help="path to MediaLibrary.db (optional)")
     ap.add_argument("--port", type=int, default=8765)
-    ap.add_argument("--browser", action="store_true", help="apri nel browser invece della finestra nativa")
-    ap.add_argument("--no-window", action="store_true", help="avvia solo il server")
+    ap.add_argument("--browser", action="store_true", help="open in the browser instead of the native window")
+    ap.add_argument("--no-window", action="store_true", help="start the server only")
     args = ap.parse_args(argv)
 
     state = AppState(args.db)
@@ -48,11 +48,11 @@ def main(argv=None):
     except OSError:
         httpd = start_server(state, 0)  # port busy: pick a free one
     url = "http://127.0.0.1:%d/" % httpd.server_address[1]
-    print("Alpha DJ Bud attivo su", url)
+    print("Alpha DJ Bud running at", url)
     if state.library:
-        print("Libreria djay:", state.library.path)
+        print("djay library:", state.library.path)
     else:
-        print("ATTENZIONE: libreria djay non trovata")
+        print("WARNING: djay library not found")
 
     if args.no_window:
         _wait()
@@ -69,9 +69,9 @@ def main(argv=None):
             webview.start()
             return
         except ImportError:
-            print("pywebview non installato: uso il browser in modalità app.")
+            print("pywebview not installed: using the browser in app mode.")
         except Exception as e:
-            print("Finestra nativa non disponibile (%s): uso il browser." % e)
+            print("Native window not available (%s): using the browser." % e)
 
     if not _open_chrome_app(url, state.settings.get("compact")):
         webbrowser.open(url)

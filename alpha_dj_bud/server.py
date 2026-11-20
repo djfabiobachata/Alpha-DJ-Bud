@@ -17,12 +17,9 @@ GENRES = [
     {"id": "salsa", "name": "Salsa"},
     {"id": "zouk", "name": "Zouk"},
 ]
-EVENTS = [
-    {"id": "bachata", "name": "Serata Bachata"},
-    {"id": "salsa", "name": "Serata Salsa"},
-    {"id": "zouk", "name": "Serata Zouk"},
-    {"id": "mista", "name": "Serata mista (Bachata · Salsa · Zouk)"},
-]
+# names are translated by the UI (event.<id>)
+EVENTS = [{"id": "bachata"}, {"id": "salsa"}, {"id": "zouk"}, {"id": "mista"}]
+LANGUAGES = ["en", "it", "es"]
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 
 
@@ -50,6 +47,7 @@ class AppState:
             "autoGenre": True,
             "dbPath": db_path,
             "compact": False,
+            "language": "en",
         }
         self._load_settings()
         if db_path:
@@ -158,7 +156,7 @@ class AppState:
         try:
             hist = self.library.history(since_unix=self.set_start - 6 * 3600, limit=30)
         except Exception as e:
-            self.library.error = "Cronologia djay non leggibile: %s" % e
+            self.library.error = "cannot read djay history: %s" % e
             return
         fresh = [h for h in hist if h["time"] > self.last_history_time]
         if fresh:
@@ -219,14 +217,15 @@ class AppState:
                 "brain": self.brain.stats(genre),
                 "options": self.settings["options"],
                 "keyFromComments": self.settings["keyFromComments"],
+                "language": self.settings.get("language", "en"),
+                "languages": LANGUAGES,
                 "autoGenre": self.settings["autoGenre"],
                 "compact": self.settings["compact"],
                 "hasWindow": self.window is not None,
                 "db": {
                     "path": lib.path if lib else None,
                     "ok": bool(lib) and not lib.error,
-                    "error": (lib.error if lib else
-                              "Libreria djay non trovata. Apri djay Pro almeno una volta o indica il percorso nelle impostazioni."),
+                    "error": (lib.error if lib else "notFound"),
                     "tracks": len(lib.tracks) if lib else 0,
                 },
             }
@@ -259,7 +258,7 @@ class AppState:
             elif name == "playlist":
                 s["playlistByGenre"][body.get("genre") or s["genre"]] = body["id"]
             elif name == "current":
-                self.set_current(body["id"], "manuale")
+                self.set_current(body["id"], "manual")
             elif name == "hide":
                 self.hidden.add(body["id"])
             elif name == "like":
@@ -268,6 +267,8 @@ class AppState:
                 for k, v in (body.get("options") or {}).items():
                     if k in recommender.DEFAULTS:
                         s["options"][k] = v
+                if body.get("language") in LANGUAGES:
+                    s["language"] = body["language"]
                 for k in ("keyFromComments", "autoGenre"):
                     if k in body:
                         s[k] = bool(body[k])
@@ -356,7 +357,7 @@ def make_handler(state):
                 body = json.loads(self.rfile.read(n) or b"{}")
                 return self._send(200, state.action(u.path[5:], body))
             except KeyError as e:
-                return self._send(400, {"error": "azione sconosciuta o dati mancanti: %s" % e})
+                return self._send(400, {"error": "unknown action or missing data: %s" % e})
             except Exception as e:
                 return self._send(500, {"error": str(e)})
 

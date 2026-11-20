@@ -151,7 +151,7 @@ class DjayLibrary:
                 con.close()
             self.error = None
         except Exception as e:  # keep previous snapshot
-            self.error = "Impossibile leggere la libreria djay: %s" % e
+            self.error = "cannot read the djay library: %s" % e
             return False
         self.loaded_mtime = mtime
         return True
@@ -180,7 +180,7 @@ class DjayLibrary:
                     entries.append(pi["mediaItemUUID"])
             playlists[uid] = {
                 "id": uid,
-                "name": p.get("name") or "Senza nome",
+                "name": p.get("name") or "Untitled",
                 "type": p.get("type", TYPE_PLAYLIST),
                 "parent": p.get("parentUUID"),
                 "children": list(p.get("childUUIDs") or []),

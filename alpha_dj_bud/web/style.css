@@ -225,3 +225,4 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
   .acts button.like, .acts button.hide { display: none; }
   .filter-note { display: none; }
 }
+.opt select.lang-select { width: 150px; }

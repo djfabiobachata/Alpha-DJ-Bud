@@ -158,3 +158,32 @@ class ServerStateTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LanguageTest(unittest.TestCase):
+    def test_language_setting_and_translations(self):
+        import json
+        import re
+        tmp = tempfile.mkdtemp()
+        os.environ["ALPHA_DJ_BUD_HOME"] = os.path.join(tmp, "home")
+        from alpha_dj_bud.server import AppState
+        st = AppState(fixture.build(os.path.join(tmp, "MediaLibrary.db")))
+        self.assertEqual(st.snapshot()["language"], "en")
+        st.action("options", {"language": "es"})
+        self.assertEqual(AppState(st.library.path).snapshot()["language"], "es")
+        st.action("options", {"language": "xx"})  # ignored
+        self.assertEqual(st.snapshot()["language"], "es")
+        # every language has the same keys as English
+        js = open(os.path.join(os.path.dirname(__file__), "..", "alpha_dj_bud", "web", "i18n.js"), encoding="utf-8").read()
+        blocks = dict(re.findall(r"\n  (en|it|es): \{(.*?)\n  \},", js, re.S))
+        keys = {k: set(re.findall(r'"([\w.]+)":', v)) for k, v in blocks.items()}
+        self.assertEqual(keys["it"], keys["en"])
+        self.assertEqual(keys["es"], keys["en"])
+
+    def test_legacy_relation_labels_migrated(self):
+        import json
+        p = os.path.join(tempfile.mkdtemp(), "brain.json")
+        with open(p, "w") as f:
+            json.dump({"version": 1, "genres": {"bachata": {"relations": {"stessa key": 3, "+6": 1}}}}, f)
+        b = Brain(p)
+        self.assertEqual(b.g("bachata")["relations"], {"same": 3, "tritone": 1})

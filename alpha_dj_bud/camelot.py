@@ -35,11 +35,15 @@ _ENHARMONIC = {"c#": "db", "d#": "eb", "gb": "f#", "g#": "ab", "a#": "bb",
 _CAMELOT_RE = re.compile(r"^\s*(1[0-2]|0?[1-9])\s*([ABab])\b")
 
 # Relation labels, best first. Used for display and for learning.
-REL_SAME = "stessa key"
-REL_RELATIVE = "relativa A/B"
-REL_UP = "+1"
-REL_DOWN = "-1"
-REL_TRITONE = "+6"
+REL_SAME = "same"
+REL_RELATIVE = "relative"
+REL_UP = "up"
+REL_DOWN = "down"
+REL_TRITONE = "tritone"
+
+# labels used by versions < 1.1 (kept to migrate saved learning data)
+LEGACY_RELATIONS = {"stessa key": REL_SAME, "relativa A/B": REL_RELATIVE,
+                    "+1": REL_UP, "-1": REL_DOWN, "+6": REL_TRITONE}
 
 
 def from_djay_index(idx):

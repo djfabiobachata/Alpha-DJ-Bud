@@ -49,6 +49,11 @@ class Brain:
                 d = json.load(f)
             if isinstance(d, dict) and "genres" in d:
                 self.data = d
+                for gd in d["genres"].values():  # migrate old relation labels
+                    rels = gd.get("relations") or {}
+                    for old, new in camelot.LEGACY_RELATIONS.items():
+                        if old in rels:
+                            rels[new] = rels.get(new, 0) + rels.pop(old)
         except (OSError, ValueError):
             pass
 
@@ -140,13 +145,13 @@ class Brain:
 
     def score(self, genre, current, cand, rel):
         """Learned preference for playing `cand` after `current` (0..1) and
-        a list of short human reasons."""
+        a list of reason codes (translated by the UI)."""
         gd = self.g(genre)
         reasons = []
         s = 0.0
         pair = gd["pairs"].get("%s>%s" % (current.id, cand.id), 0) if current else 0
         if pair:
-            reasons.append("l'hai già messo dopo questo brano (%dx)" % pair)
+            reasons.append({"code": "pair", "n": pair})
         s += 0.35 * (1 - math.exp(-pair))
 
         plays = gd["plays"].get(cand.id, 0)
@@ -154,7 +159,7 @@ class Brain:
         if maxp:
             s += 0.2 * math.log1p(plays) / math.log1p(maxp)
             if plays >= 3 and plays >= 0.5 * maxp:
-                reasons.append("uno dei tuoi più suonati")
+                reasons.append({"code": "topPlayed"})
 
         rels = gd["relations"]
         if rel and rels:
@@ -171,7 +176,7 @@ class Brain:
         like = gd["likes"].get(cand.id, 0)
         s += 0.15 * (like / 3.0)
         if like > 0:
-            reasons.append("ti piace")
+            reasons.append({"code": "liked"})
         ign = gd["ignored"].get(cand.id, 0)
         s -= min(0.25, 0.03 * ign)
         return max(0.0, min(1.0, s)), reasons

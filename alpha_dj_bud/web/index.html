@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,46 +13,46 @@
   <!-- ===== HEADER ===== -->
   <header class="bar">
     <div class="logo" title="Alpha DJ Bud">ALPHA<span>DJ</span>BUD</div>
-    <div class="lcd lcd-wide" id="statusLcd">Avvio…</div>
+    <div class="lcd lcd-wide" id="statusLcd" data-i18n="status.starting">Starting…</div>
     <div class="leds">
       <div class="led-cell"><i class="led" id="ledDjay"></i><b>DJAY</b></div>
       <div class="led-cell"><i class="led purple" id="ledBrain"></i><b>BRAIN</b></div>
     </div>
     <div class="hdr-btns">
-      <button class="hw" id="btnSettings" title="Impostazioni">⚙</button>
-      <button class="hw accent" id="btnCompact" title="Finestra piccola sopra djay">▣ MINI</button>
+      <button class="hw" id="btnSettings" data-i18n-title="hdr.settings">⚙</button>
+      <button class="hw accent" id="btnCompact" data-i18n-title="hdr.mini">▣ MINI</button>
     </div>
   </header>
 
   <!-- ===== SETUP ===== -->
   <section class="panel setup">
-    <h2>SETUP SERATA</h2>
+    <h2 data-i18n="setup.title">NIGHT SETUP</h2>
     <label class="field" id="fieldEvent">
-      <span>SERATA</span>
+      <span data-i18n="setup.event">EVENT</span>
       <select id="selEvent"></select>
     </label>
     <div class="field">
-      <span>ORA SUONO</span>
+      <span data-i18n="setup.genre">NOW PLAYING</span>
       <div class="seg" id="genreSeg"></div>
     </div>
     <label class="field">
-      <span>CARTELLA / PLAYLIST <em id="poolCount"></em></span>
+      <span><span data-i18n="setup.playlist">FOLDER / PLAYLIST</span> <em id="poolCount"></em></span>
       <select id="selPlaylist"></select>
     </label>
     <div class="row-btns">
-      <button class="hw" id="btnNewSet" title="Azzera il set (brani suonati ed esclusi)">NUOVO SET</button>
-      <button class="hw accent" id="btnEndSet" title="Chiudi il set e salva ciò che Bud ha imparato">FINE SET</button>
+      <button class="hw" id="btnNewSet" data-i18n="setup.newSet" data-i18n-title="setup.newSetTip">NEW SET</button>
+      <button class="hw accent" id="btnEndSet" data-i18n="setup.endSet" data-i18n-title="setup.endSetTip">END SET</button>
     </div>
   </section>
 
   <!-- ===== NOW PLAYING ===== -->
   <section class="panel now">
-    <h2>IN RIPRODUZIONE <em id="nowSource"></em></h2>
+    <h2><span data-i18n="now.title">NOW PLAYING</span> <em id="nowSource"></em></h2>
     <div class="now-body">
       <div class="now-info">
         <div class="lcd lcd-track">
           <div class="t" id="nowTitle">—</div>
-          <div class="a" id="nowArtist">Fai partire un brano in djay</div>
+          <div class="a" id="nowArtist"></div>
         </div>
         <div class="readouts">
           <div class="readout"><span>KEY</span><div class="seg7" id="nowKey">--</div><small id="nowMusical"></small></div>
@@ -65,31 +65,31 @@
 
   <!-- ===== SUGGESTIONS ===== -->
   <section class="panel next">
-    <h2>PROSSIMI BRANI <em id="nextInfo"></em></h2>
+    <h2><span data-i18n="next.title">NEXT TRACKS</span> <em id="nextInfo"></em></h2>
     <div class="list" id="nextList"></div>
     <div class="filter-note" id="filterNote"></div>
   </section>
 
-  <!-- ===== SIDE: HISTORY + BRAIN + SEARCH ===== -->
+  <!-- ===== SIDE: BRAIN + HISTORY + SEARCH ===== -->
   <section class="panel side">
-    <h2>BUD BRAIN</h2>
+    <h2 data-i18n="brain.title">BUD BRAIN</h2>
     <div class="brain">
-      <div class="knob-cell"><div class="knob" id="knobConf"><i></i></div><b>FIDUCIA</b><small id="brainConf">0%</small></div>
-      <div class="knob-cell"><div class="knob" id="knobFollow"><i></i></div><b>SEGUITI</b><small id="brainFollow">0%</small></div>
+      <div class="knob-cell"><div class="knob" id="knobConf"><i></i></div><b data-i18n="brain.conf">CONFIDENCE</b><small id="brainConf">0%</small></div>
+      <div class="knob-cell"><div class="knob" id="knobFollow"><i></i></div><b data-i18n="brain.followed">FOLLOWED</b><small id="brainFollow">0%</small></div>
       <div class="brain-txt" id="brainTxt"></div>
     </div>
-    <button class="hw small" id="btnImport" title="Impara dai set salvati nella cronologia di djay">IMPARA DALLA CRONOLOGIA DJAY</button>
+    <button class="hw small" id="btnImport" data-i18n="brain.import" data-i18n-title="brain.importTip">LEARN FROM DJAY HISTORY</button>
 
-    <h2 class="sub">SET IN CORSO</h2>
+    <h2 class="sub" data-i18n="side.set">CURRENT SET</h2>
     <ol class="played" id="playedList"></ol>
 
-    <h2 class="sub">SCEGLI A MANO</h2>
-    <input class="search" id="search" placeholder="Cerca titolo o artista…" autocomplete="off">
+    <h2 class="sub" data-i18n="side.pick">PICK MANUALLY</h2>
+    <input class="search" id="search" data-i18n-ph="side.search" placeholder="Search title or artist…" autocomplete="off">
     <div class="list mini" id="searchList"></div>
   </section>
 
   <footer class="bar foot">
-    <div class="term" id="term">ALPHA DJ BUD Instructional Dialog ONLINE<br>Camelot Interlocks ENABLED</div>
+    <div class="term" id="term" data-i18n="term"></div>
     <div class="brand">alpha dj bud · <span id="ver"></span></div>
   </footer>
 </div>
@@ -97,24 +97,32 @@
 <!-- ===== SETTINGS DIALOG ===== -->
 <div class="modal" id="settings" hidden>
   <div class="panel dialog">
-    <h2>IMPOSTAZIONI</h2>
-    <label class="opt"><span>Tolleranza BPM (±)</span><input type="number" min="0" max="20" step="0.5" id="optTol"></label>
-    <label class="opt"><span>Niente stesso artista negli ultimi N brani</span><input type="number" min="0" max="10" step="1" id="optArtist"></label>
-    <label class="opt"><span>Numero di consigli</span><input type="number" min="3" max="50" step="1" id="optLimit"></label>
-    <label class="opt chk"><input type="checkbox" id="optTritone"><span>Includi salto di 6 sulla ruota (es. 3A → 9A / 9B)</span></label>
-    <label class="opt chk"><input type="checkbox" id="optHalf"><span>Accetta tempo doppio / metà (es. 90 ↔ 180)</span></label>
-    <label class="opt chk"><input type="checkbox" id="optReplays"><span>Escludi brani già suonati nel set</span></label>
-    <label class="opt chk"><input type="checkbox" id="optComments"><span>Usa la key Camelot scritta nei commenti (Mixed In Key) invece di quella di djay</span></label>
-    <label class="opt chk"><input type="checkbox" id="optAutoGenre"><span>Serata mista: cambia genere da solo in base al brano in riproduzione</span></label>
-    <label class="opt col"><span>Libreria djay (vuoto = automatico)</span><input type="text" id="optDb" placeholder="~/Music/djay/djay Media Library.djayMediaLibrary"></label>
+    <h2 data-i18n="set.title">SETTINGS</h2>
+    <label class="opt"><span data-i18n="set.language">Language</span>
+      <select id="optLang" class="lang-select">
+        <option value="en">English</option>
+        <option value="it">Italiano</option>
+        <option value="es">Español</option>
+      </select>
+    </label>
+    <label class="opt"><span data-i18n="set.tol"></span><input type="number" min="0" max="20" step="0.5" id="optTol"></label>
+    <label class="opt"><span data-i18n="set.artist"></span><input type="number" min="0" max="10" step="1" id="optArtist"></label>
+    <label class="opt"><span data-i18n="set.limit"></span><input type="number" min="3" max="50" step="1" id="optLimit"></label>
+    <label class="opt chk"><input type="checkbox" id="optTritone"><span data-i18n="set.tritone"></span></label>
+    <label class="opt chk"><input type="checkbox" id="optHalf"><span data-i18n="set.half"></span></label>
+    <label class="opt chk"><input type="checkbox" id="optReplays"><span data-i18n="set.replays"></span></label>
+    <label class="opt chk"><input type="checkbox" id="optComments"><span data-i18n="set.comments"></span></label>
+    <label class="opt chk"><input type="checkbox" id="optAutoGenre"><span data-i18n="set.autoGenre"></span></label>
+    <label class="opt col"><span data-i18n="set.db"></span><input type="text" id="optDb" placeholder="~/Music/djay/djay Media Library.djayMediaLibrary"></label>
     <div class="dbinfo" id="dbInfo"></div>
     <div class="row-btns">
-      <button class="hw" id="btnCloseSettings">ANNULLA</button>
-      <button class="hw accent" id="btnSaveSettings">SALVA</button>
+      <button class="hw" id="btnCloseSettings" data-i18n="set.cancel">CANCEL</button>
+      <button class="hw accent" id="btnSaveSettings" data-i18n="set.save">SAVE</button>
     </div>
   </div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
