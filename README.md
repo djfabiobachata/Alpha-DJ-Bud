@@ -32,10 +32,33 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 
 1. Scarica il repository (pulsante verde **Code → Download ZIP**) e scompattalo, per esempio in `Applicazioni` o in `Documenti`.
 2. Fai **doppio clic** su `Avvia Alpha DJ Bud.command`.
-   - La prima volta macOS può bloccarlo. In quel caso: tasto destro → **Apri** → **Apri**.
+   - Se macOS dice che l'app non è sicura o non può essere verificata, leggi [Sbloccare l'app](#sbloccare-lapp-avviso-di-sicurezza-di-macos) qui sotto.
    - Al primo avvio installa `pywebview` (serve internet una sola volta), che dà la finestra nativa e la modalità sempre in primo piano.
    - Se Python 3 manca, apri il Terminale e lancia `xcode-select --install`.
 3. Apri djay Pro, scegli il genere e la cartella in Alpha DJ Bud e inizia a suonare.
+
+### Sbloccare l'app (avviso di sicurezza di macOS)
+
+macOS (Gatekeeper) blocca tutti i file scaricati da internet che non sono firmati da uno sviluppatore registrato presso Apple. Non vuol dire che il file sia pericoloso. Basta sbloccarlo una volta sola, in uno di questi due modi.
+
+**Modo 1 – Dalle Impostazioni (consigliato)**
+
+1. Prova ad aprire `Avvia Alpha DJ Bud.command` e chiudi l'avviso con **Fine** / **OK**.
+2. Apri **Impostazioni di Sistema → Privacy e sicurezza**.
+3. Scorri in basso fino a **Sicurezza**. Accanto al messaggio su "Avvia Alpha DJ Bud.command" premi **Apri comunque**.
+4. Conferma con la password del Mac. Dalla volta successiva si apre normalmente con il doppio clic.
+
+Sulle versioni recenti di macOS il vecchio trucco "tasto destro → Apri" non funziona più.
+
+**Modo 2 – Dal Terminale (sblocca tutta la cartella)**
+
+1. Apri **Terminale** (Spotlight → "Terminale").
+2. Scrivi `xattr -dr com.apple.quarantine ` (con uno spazio alla fine), **trascina nella finestra la cartella** di Alpha DJ Bud e premi Invio.
+3. Ora il doppio clic su `Avvia Alpha DJ Bud.command` funziona.
+
+**Se il doppio clic non funziona ancora**, avvia l'app dal Terminale: scrivi `bash ` (con lo spazio), trascina dentro il file `Avvia Alpha DJ Bud.command` e premi Invio.
+
+### Senza finestra nativa
 
 Senza `pywebview` l'app si apre in Chrome/Edge/Brave in modalità app oppure nel browser predefinito (in questi casi la finestra non resta sopra djay).
 
