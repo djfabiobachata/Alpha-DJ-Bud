@@ -231,7 +231,7 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
   .readouts { margin-top: 0; gap: 3px; flex: none; }
   .now-info .readout { flex: none; min-width: auto; }
   .readout > span, .readout small { display: none; }
-  .seg7 { font-size: 13px; padding: 4px 5px; margin: 0; border-radius: 4px; height: 100%; display: flex; align-items: center; }
+  .seg7 { font-size: 11px; padding: 3px 5px; margin: 0; border-radius: 4px; height: 100%; display: flex; align-items: center; letter-spacing: .02em; }
   .next { padding: 6px; }
   .next h2 { margin-bottom: 4px; font-size: 11px; }
   .trk { grid-template-columns: 38px minmax(0, 1fr) 50px; gap: 6px; padding: 5px 6px; }
