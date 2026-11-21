@@ -65,6 +65,9 @@ class AppState:
         self.new_set(save=False)
         self._open_library()
         threading.Thread(target=self.music_loop, daemon=True).start()
+        self.files = {"ok": False, "tracks": 0, "scanning": False}
+        self._files_wake = threading.Event()
+        threading.Thread(target=self.files_loop, daemon=True).start()
 
     # -- settings ----------------------------------------------------------
     def _load_settings(self):
@@ -212,6 +215,29 @@ class AppState:
                     return
             time.sleep(every if self.music.get("ok") else 60)
 
+    # -- folders on the Mac -------------------------------------------------------
+    def scan_folders(self):
+        from . import local_files
+        folders = list(self.settings.get("folders") or [])
+        self.files = dict(self.files, scanning=True)
+        self.version += 1
+        try:
+            data = local_files.scan(folders, os.path.join(self.home, "files-cache.json"))
+            self.files = {"ok": True, "tracks": len(data["files"]), "folders": len(folders), "scanning": False}
+            if self.library:
+                with self.lock:
+                    self.library.set_local_files(data if folders else None)
+        except Exception as e:
+            self.files = {"ok": False, "error": str(e), "tracks": 0, "scanning": False}
+        self.version += 1
+
+    def files_loop(self, every=600):
+        while True:
+            if self.library is not None and self.settings.get("folders"):
+                self.scan_folders()
+            self._files_wake.wait(every)
+            self._files_wake.clear()
+
     # -- updates -------------------------------------------------------------
     def check_update(self):
         from . import updater
@@ -328,6 +354,8 @@ class AppState:
                 "filterStats": stats,
                 "brain": self.brain.stats(genre),
                 "options": self.settings["options"],
+                "bpmTolerance": dict(recommender.DEFAULTS["bpmToleranceByGenre"],
+                                     **(self.settings["options"].get("bpmToleranceByGenre") or {})).get(genre),
                 "keyFromComments": self.settings["keyFromComments"],
                 "language": self.settings.get("language", "en"),
                 "languages": LANGUAGES,
@@ -335,6 +363,8 @@ class AppState:
                 "update": self.update,
                 "nowPlayingFile": self.np_source,
                 "music": self.music,
+                "files": self.files,
+                "folders": self.settings.get("folders") or [],
                 "nowPlayingUnmatched": self.np_unmatched,
                 "autoUpdateCheck": self.settings.get("autoUpdateCheck", True),
                 "compact": self.settings["compact"],
@@ -377,7 +407,13 @@ class AppState:
                 elif s["genre"] not in MIXED_GENRES:
                     s["genre"] = MIXED_GENRES[0]
             elif name == "genre":
-                s["genre"] = body["genre"]
+                g = body["genre"]
+                s["genre"] = g
+                # clicking a genre outside the current night switches the night too
+                if s["event"] == "mista" and g not in MIXED_GENRES:
+                    s["event"] = g
+                elif s["event"] != "mista" and s["event"] != g:
+                    s["event"] = "mista" if (g in MIXED_GENRES and s["event"] in MIXED_GENRES) else g
             elif name == "playlist":
                 s["playlistByGenre"][body.get("genre") or s["genre"]] = body["id"]
             elif name == "current":
@@ -401,6 +437,21 @@ class AppState:
                 if "dbPath" in body:
                     s["dbPath"] = body["dbPath"] or None
                     self._open_library()
+            elif name == "folders":
+                folders = list(s.get("folders") or [])
+                add, rem = body.get("add"), body.get("remove")
+                if add:
+                    add = os.path.expanduser(add.strip())
+                    if not os.path.isdir(add):
+                        return {"ok": False, "code": "notFolder"}
+                    if add not in folders:
+                        folders.append(add)
+                if rem in folders:
+                    folders.remove(rem)
+                s["folders"] = folders
+                if not folders and self.library:
+                    self.library.set_local_files(None)
+                self._files_wake.set()
             elif name == "newset":
                 self.new_set()
             elif name == "endset":
@@ -415,6 +466,7 @@ class AppState:
                 self.version += 1
                 return {"imported": n}
             elif name == "window":
+                self.remember_window()
                 s["compact"] = bool(body.get("compact"))
                 self.apply_window()
             else:
@@ -443,17 +495,74 @@ class AppState:
         except Exception as e:
             return {"ok": False, "code": "failed", "detail": str(e)}
 
+    # -- window position / size (one frame for the normal window, one for MINI) --
+    DEFAULT_FRAMES = {"normal": (1080, 760), "mini": (300, 480)}
+
+    def window_mode(self):
+        return "mini" if self.settings.get("compact") else "normal"
+
+    def window_frame(self, mode, screens=None):
+        """Saved frame for `mode`, kept on a visible screen; None = default."""
+        f = (self.settings.get("windowFrames") or {}).get(mode)
+        w, h = self.DEFAULT_FRAMES[mode]
+        if not f:
+            return {"x": None, "y": None, "w": w, "h": h}
+        w, h = max(240, int(f.get("w", w))), max(260, int(f.get("h", h)))
+        x, y = f.get("x"), f.get("y")
+        if screens and x is not None and y is not None:
+            on = [sc for sc in screens
+                  if sc["x"] <= x + 40 <= sc["x"] + sc["w"] and sc["y"] <= y + 20 <= sc["y"] + sc["h"]]
+            if not on:
+                x = y = None  # that screen is gone: let the system place it
+            else:
+                sc = on[0]
+                w, h = min(w, sc["w"]), min(h, sc["h"])
+                x = min(max(x, sc["x"]), sc["x"] + sc["w"] - w)
+                y = min(max(y, sc["y"]), sc["y"] + sc["h"] - h)
+        return {"x": x, "y": y, "w": w, "h": h}
+
+    def _screens(self):
+        try:
+            import webview
+            return [{"x": sc.x, "y": sc.y, "w": sc.width, "h": sc.height} for sc in webview.screens]
+        except Exception:
+            return None
+
+    def remember_window(self, *_):
+        """Called when the window moves or is resized by the DJ."""
+        w = self.window
+        if w is None or time.time() < getattr(self, "_ignore_window_until", 0):
+            return
+        try:
+            frame = {"x": int(w.x), "y": int(w.y), "w": int(w.width), "h": int(w.height)}
+        except Exception:
+            return
+        self.settings.setdefault("windowFrames", {})[self.window_mode()] = frame
+        self._frames_dirty = time.time()
+
+    def save_frames_loop(self):
+        while True:
+            time.sleep(1.0)
+            t = getattr(self, "_frames_dirty", 0)
+            if t and time.time() - t > 0.8:
+                self._frames_dirty = 0
+                try:
+                    self.save_settings()
+                except Exception:
+                    pass
+
     def apply_window(self):
         w = self.window
         if w is None:
             return
         try:
-            if self.settings["compact"]:
-                w.resize(360, 560)
-                w.on_top = True
-            else:
-                w.resize(1080, 760)
-                w.on_top = False
+            mode = self.window_mode()
+            f = self.window_frame(mode, self._screens())
+            self._ignore_window_until = time.time() + 1.0
+            w.on_top = mode == "mini"
+            w.resize(f["w"], f["h"])
+            if f["x"] is not None:
+                w.move(f["x"], f["y"])
         except Exception as e:
             print("window:", e, file=sys.stderr)
 

@@ -90,7 +90,7 @@ function render(s) {
   fillSelect($("selEvent"), s.events.map((e) => [e.id, t("event." + e.id)]), s.event);
   const allowed = s.event === "mista" ? s.mixedGenres : [s.event];
   $("genreSeg").innerHTML = s.genres.map((g) =>
-    `<button data-g="${g.id}" class="${g.id === s.genre ? "on" : ""}" ${allowed.includes(g.id) ? "" : "disabled"}>${g.name.toUpperCase()}</button>`).join("");
+    `<button data-g="${g.id}" class="${g.id === s.genre ? "on" : ""}${allowed.includes(g.id) ? "" : " off-night"}">${g.name.toUpperCase()}</button>`).join("");
   fillPlaylists($("selPlaylist"), s.playlists, s.playlistByGenre[s.genre] || "");
   $("poolCount").textContent = s.poolSize ? `· ${s.poolSize} ${t("setup.tracks")}` : "";
 
@@ -139,7 +139,8 @@ function renderSuggestions(s) {
     list.innerHTML = s.suggestions.map((tr, i) => {
       const d = tr.bpmDelta, dcls = d > 0.05 ? "up" : d < -0.05 ? "down" : "";
       const ds = (d > 0 ? "+" : "") + d.toFixed(1);
-      const why = tr.reasons && tr.reasons.length ? `<i>★ ${esc(tr.reasons.map(reasonText).join(" · "))}</i>` : "";
+      const tag = tr.bpmTag ? `<em class="bpmtag ${tr.bpmTag}">${tr.bpmTag === "up" ? "▲" : "▼"} ${esc(t("tag." + tr.bpmTag))}</em>` : "";
+      const why = (tag ? tag + " " : "") + (tr.reasons && tr.reasons.length ? `<i>★ ${esc(tr.reasons.map(reasonText).join(" · "))}</i>` : "");
       return `<div class="trk${i < 3 ? " top" : ""}${tr.hasFile ? " can-drag" : " no-file"}" data-id="${tr.id}"
         ${tr.hasFile ? 'draggable="true"' : ""} title="${esc(tr.hasFile ? t("drag.hint") : t("drag.noFile"))}">
         <div class="rank">${i + 1}</div>
@@ -159,7 +160,7 @@ function renderSuggestions(s) {
 }
 
 function fillPlaylists(sel, playlists, value) {
-  const groups = [["djay", t("grp.djay")], ["music", t("grp.music")]];
+  const groups = [["djay", t("grp.djay")], ["music", t("grp.music")], ["files", t("grp.files")]];
   const sig = LANG + JSON.stringify(playlists.map((p) => [p.id, p.name, p.count, p.depth, p.group]));
   if (sel.dataset.sig !== sig) {
     const opt = (p) => {
@@ -330,13 +331,40 @@ $("btnCheckUpdate").onclick = async () => {
   catch (e) { $("updInfo").textContent = t("upd.err.network"); }
 };
 
+/* folders on the Mac (Finder / USB) */
+const num = (v, d) => { const n = parseFloat(v); return isNaN(n) ? d : n; };
+function renderFolders() {
+  const f = S.folders || [];
+  const info = S.files || {};
+  $("folderList").innerHTML = f.length ? f.map((p) =>
+    `<div class="folder"><span title="${esc(p)}">📁 ${esc(p)}</span><button class="hw small rm" data-path="${esc(p)}">✕</button></div>`).join("")
+    : `<div class="dbinfo">${esc(t("fold.none"))}</div>`;
+  $("folderInfo").textContent = info.scanning ? t("fold.scanning") : (f.length ? t("fold.count", { n: info.tracks || 0 }) : "");
+}
+$("folderList").onclick = async (e) => {
+  const b = e.target.closest("button.rm");
+  if (!b) return;
+  await act("folders", { remove: b.dataset.path });
+  renderFolders();
+};
+$("btnAddFolder").onclick = async () => {
+  let paths = [];
+  if (nativeDrag() && window.pywebview.api.pick_folder) paths = await window.pywebview.api.pick_folder();
+  else { const p = prompt(t("fold.prompt")); if (p) paths = [p]; }
+  for (const p of paths) await act("folders", { add: p }, t("fold.added"));
+  setTimeout(() => { refresh(true).then(renderFolders); }, 300);
+};
+
 /* settings */
 $("btnSettings").onclick = () => {
   const o = S.options;
   $("optLang").value = LANG;
   $("optAutoUpdate").checked = S.autoUpdateCheck !== false;
   $("updInfo").textContent = updInfoText(S.update);
-  $("optTol").value = o.bpmTolerance; $("optArtist").value = o.artistWindow; $("optLimit").value = o.limit;
+  const tg = Object.assign({ bachata: 4, salsa: 6, zouk: 10 }, o.bpmToleranceByGenre || {});
+  $("optTolB").value = tg.bachata; $("optTolS").value = tg.salsa; $("optTolZ").value = tg.zouk;
+  renderFolders();
+  $("optArtist").value = o.artistWindow; $("optLimit").value = o.limit;
   $("optVariety").value = String(o.variety ?? 50);
   $("optTritone").checked = o.includeTritone; $("optHalf").checked = o.halfDouble; $("optReplays").checked = o.avoidReplays;
   $("optComments").checked = S.keyFromComments; $("optAutoGenre").checked = S.autoGenre;
@@ -352,7 +380,8 @@ $("btnSaveSettings").onclick = () => {
   const body = {
     language: $("optLang").value,
     options: {
-      bpmTolerance: parseFloat($("optTol").value) || 0, artistWindow: parseInt($("optArtist").value, 10) || 0,
+      bpmToleranceByGenre: { bachata: num($("optTolB").value, 4), salsa: num($("optTolS").value, 6), zouk: num($("optTolZ").value, 10) },
+      artistWindow: parseInt($("optArtist").value, 10) || 0,
       limit: parseInt($("optLimit").value, 10) || 15, includeTritone: $("optTritone").checked,
       halfDouble: $("optHalf").checked, avoidReplays: $("optReplays").checked,
       variety: parseInt($("optVariety").value, 10),

@@ -165,6 +165,7 @@ class DjayLibrary:
         self.locations = {}
         self._path_cache = {}
         self.apple_music = None   # data from music_library.load(), merged on each load
+        self.local_files = None   # data from local_files.scan(), merged on each load
 
     # -- low level -------------------------------------------------------
     def _connect(self):
@@ -249,6 +250,7 @@ class DjayLibrary:
                                  "tracks": [t for t in items if t in tracks]}
         self.playlists = playlists
         self._merge_apple_music()
+        self._merge_local_files()
 
     def _manual_bpms(self, con):
         out = {}
@@ -372,6 +374,62 @@ class DjayLibrary:
                 par = self.playlists.get(p["parent"]) or self.playlists[root]
                 par["children"].append(pid)
 
+    # -- folders on the Mac (Finder / USB) ---------------------------------------
+    def set_local_files(self, data):
+        self.local_files = data
+        self.refresh(force=True)
+
+    def _merge_local_files(self):
+        data = self.local_files
+        if not data:
+            return
+        import hashlib
+        by_path = {}
+        for uid, loc in self.locations.items():
+            for u in loc["uris"]:
+                if u.startswith("file:") and "/.file/id=" not in u:
+                    by_path[unquote(urlparse(u).path)] = uid
+        by_name = {}
+        for uid, t in self.tracks.items():
+            by_name.setdefault((_norm_text(t.djay_title), _norm_text(t.djay_artist or t.artist)), uid)
+
+        ids = {}
+        for path, m in data["files"].items():
+            uid = by_path.get(path)
+            if uid not in self.tracks:
+                uid = by_name.get((_norm_text(m["title"]), _norm_text(m["artist"])))
+            if uid in self.tracks:
+                t = self.tracks[uid]
+                t.key = t.key or m.get("key")
+                t.bpm = t.bpm or m.get("bpm")
+                if not any(u.startswith("file:") for u in self.locations.get(uid, {}).get("uris", [])):
+                    self.locations.setdefault(uid, {"uris": [], "bookmark": None})["uris"].append(
+                        "file://" + quote(path))
+                ids[path] = uid
+                continue
+            tid = "f:" + hashlib.md5(path.encode("utf-8")).hexdigest()[:20]
+            t = Track(tid, m["title"], m["artist"], m.get("bpm"), m.get("key"), m.get("duration"),
+                      m.get("comments"), "", "file")
+            t.djay_title, t.djay_artist = m["title"], m["artist"]
+            self.tracks[tid] = t
+            self.locations[tid] = {"uris": ["file://" + quote(path)], "bookmark": None}
+            ids[path] = tid
+
+        def add(node, parent):
+            pid = node["id"]
+            self.playlists[pid] = {
+                "id": pid, "name": node["name"], "parent": parent,
+                "type": TYPE_FOLDER if node["children"] else TYPE_PLAYLIST,
+                "children": [c["id"] for c in node["children"]],
+                "tracks": [ids[f] for f in node["files"] if f in ids],
+            }
+            for c in node["children"]:
+                add(c, pid)
+
+        for root in data["folders"]:
+            add(root, "fs")
+        self._fs_roots = [r["id"] for r in data["folders"]]
+
     def tree(self):
         """Folders and playlists for the dropdown, grouped by source:
         'djay' (djay's own library) and 'music' (Apple's Music app)."""
@@ -389,7 +447,7 @@ class DjayLibrary:
         result = []
         if "djay:all" in self.playlists:
             result.extend(node("djay:all", 0, "djay"))
-        djay = {k: p for k, p in self.playlists.items() if not k.startswith(("am:", "djay:"))}
+        djay = {k: p for k, p in self.playlists.items() if not k.startswith(("am:", "djay:", "fs:"))}
         roots = [p for p in djay.values()
                  if p["parent"] in (None, ROOT_UUID) or p["parent"] not in djay]
         seen = set()
@@ -409,6 +467,8 @@ class DjayLibrary:
         if root:
             for c in root["children"]:
                 result.extend(node(c, 0, "music"))
+        for r in getattr(self, "_fs_roots", []) if self.local_files else []:
+            result.extend(node(r, 0, "files"))
         return result
 
     def tracks_in(self, uid, _seen=None):

@@ -72,6 +72,15 @@ class JsApi:
         from . import native_drag
         return native_drag.status()
 
+    def pick_folder(self):
+        """Native folder chooser (Finder)."""
+        import webview
+        try:
+            res = self._state.window.create_file_dialog(webview.FOLDER_DIALOG, allow_multiple=True)
+        except Exception:
+            res = None
+        return list(res or [])
+
     def set_drag_rows(self, rows):
         from . import native_drag
         native_drag.set_rows(rows)
@@ -107,10 +116,18 @@ def main(argv=None):
             import webview  # pywebview
             brand_macos_process()
             compact = state.settings.get("compact")
-            w, h = (360, 560) if compact else (1080, 760)
+            f = state.window_frame(state.window_mode(), state._screens())
+            kw = {"x": f["x"], "y": f["y"]} if f["x"] is not None else {}
             state.window = webview.create_window(
-                "Alpha DJ Bud", url, width=w, height=h, min_size=(320, 420), js_api=JsApi(state),
-                on_top=bool(compact), background_color="#0b0b0f")
+                "Alpha DJ Bud", url, width=f["w"], height=f["h"], min_size=(240, 260),
+                js_api=JsApi(state), on_top=bool(compact), background_color="#0b0b0f", **kw)
+            try:  # remember where the DJ puts the window, for normal and MINI separately
+                state.window.events.moved += state.remember_window
+                state.window.events.resized += state.remember_window
+            except Exception as e:
+                print("window events:", e)
+            import threading as _t
+            _t.Thread(target=state.save_frames_loop, daemon=True).start()
             def _after_start():
                 try:
                     from . import native_drag

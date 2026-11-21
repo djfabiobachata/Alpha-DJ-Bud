@@ -442,3 +442,80 @@ class AppleMusicMergeTest(unittest.TestCase):
         # survives a djay database reload
         lib.refresh(force=True)
         self.assertEqual(lib.tracks_in("am:pl:10"), ids)
+
+
+class V19Test(unittest.TestCase):
+    def _state(self):
+        tmp = tempfile.mkdtemp()
+        os.environ["ALPHA_DJ_BUD_HOME"] = os.path.join(tmp, "home")
+        from alpha_dj_bud.server import AppState
+        return AppState(fixture.build(os.path.join(tmp, "MediaLibrary.db"))), tmp
+
+    def test_tolerance_per_genre(self):
+        lib = DjayLibrary(fixture.build(os.path.join(tempfile.mkdtemp(), "MediaLibrary.db")))
+        lib.refresh(force=True)
+        pool = lib.tracks_in("F-BACHATA")
+        rec = lambda g: {x["id"] for x in recommender.recommend(lib, lib.get("t01"), pool, [], None, g, {"variety": 0})[0]}
+        self.assertNotIn("t09", rec("bachata"))   # +12 BPM
+        self.assertNotIn("t09", rec("zouk"))       # zouk ±10: +12 still out
+        self.assertIn("t12", rec("salsa"))         # +4 within salsa ±6
+        custom = {x["id"] for x in recommender.recommend(lib, lib.get("t01"), pool, [], None, "zouk",
+                  {"variety": 0, "bpmToleranceByGenre": {"zouk": 12}})[0]}
+        self.assertIn("t09", custom)
+
+    def test_up_and_down_picks_are_tagged_and_on_top(self):
+        lib = DjayLibrary(fixture.build(os.path.join(tempfile.mkdtemp(), "MediaLibrary.db")))
+        lib.refresh(force=True)
+        out, _ = recommender.recommend(lib, lib.get("t01"), lib.tracks_in("F-BACHATA"), [], None,
+                                       "bachata", {"variety": 0})
+        tags = {x.get("bpmTag"): x for x in out}
+        self.assertTrue(tags["up"]["bpmDelta"] > 0 and tags["down"]["bpmDelta"] < 0)
+        self.assertIn(tags["up"], out[:3])
+        self.assertIn(tags["down"], out[:3])
+
+    def test_genre_buttons_switch_the_night(self):
+        st, _ = self._state()
+        st.action("event", {"event": "bachata"})
+        st.action("genre", {"genre": "zouk"})
+        self.assertEqual((st.settings["event"], st.settings["genre"]), ("zouk", "zouk"))
+        st.action("genre", {"genre": "salsa"})
+        self.assertEqual(st.settings["event"], "salsa")
+        st.action("genre", {"genre": "bachata"})
+        self.assertEqual(st.settings["event"], "mista")   # bachata + salsa = mixed night
+
+    def test_window_frames_kept_on_screen(self):
+        st, _ = self._state()
+        screens = [{"x": 0, "y": 0, "w": 1440, "h": 900}]
+        self.assertEqual(st.window_frame("mini", screens), {"x": None, "y": None, "w": 300, "h": 480})
+        st.settings["windowFrames"] = {"normal": {"x": 900, "y": 300, "w": 1080, "h": 760},
+                                       "mini": {"x": 5000, "y": 10, "w": 260, "h": 300}}
+        f = st.window_frame("normal", screens)
+        self.assertEqual((f["x"] + f["w"] <= 1440, f["y"] + f["h"] <= 900), (True, True))
+        self.assertIsNone(st.window_frame("mini", screens)["x"])  # off-screen: re-placed
+        self.assertEqual(st.window_frame("mini", screens)["w"], 260)  # but keeps its size
+
+    def test_folders_source(self):
+        from alpha_dj_bud.local_files import scan, read_tags
+        st, tmp = self._state()
+        music = os.path.join(tmp, "Música DJ")
+        os.makedirs(os.path.join(music, "Bachata 2026"))
+        for name in ("12A - 126 - Akai Rojas - Es Evidente.mp3", "Romeo Santos - Propuesta Indecente.mp3"):
+            open(os.path.join(music, "Bachata 2026", name), "wb").close()
+        open(os.path.join(music, "notes.txt"), "w").close()
+        m = read_tags(os.path.join(music, "Bachata 2026", "12A - 126 - Akai Rojas - Es Evidente.mp3"))
+        self.assertEqual((m["key"], m["bpm"], m["artist"], m["title"]), ("12A", 126.0, "Akai Rojas", "Es Evidente"))
+        self.assertFalse(st.action("folders", {"add": os.path.join(tmp, "nope")})["ok"])
+        st.action("folders", {"add": music})
+        st.scan_folders()
+        tree = [n for n in st.library.tree() if n["group"] == "files"]
+        self.assertEqual([(n["name"], n["depth"]) for n in tree], [("Música DJ", 0), ("Bachata 2026", 1)])
+        ids = st.library.tracks_in(tree[0]["id"])
+        self.assertEqual(len(ids), 2)
+        self.assertIn("t01", ids)                          # matched to djay's own track
+        new = st.library.get([i for i in ids if i != "t01"][0])
+        self.assertEqual((new.key, new.bpm), ("12A", 126.0))
+        self.assertTrue(st.library.file_path(new.id).endswith("Es Evidente.mp3"))
+        st.library.refresh(force=True)                     # survives djay reloads
+        self.assertEqual(len(st.library.tracks_in(tree[0]["id"])), 2)
+        st.action("folders", {"remove": music})
+        self.assertFalse([n for n in st.library.tree() if n["group"] == "files"])

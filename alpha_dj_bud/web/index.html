@@ -106,7 +106,13 @@
         <option value="es">Español</option>
       </select>
     </label>
-    <label class="opt"><span data-i18n="set.tol"></span><input type="number" min="0" max="20" step="0.5" id="optTol"></label>
+    <div class="opt"><span data-i18n="set.tolGenre"></span>
+      <span class="tols">
+        <label>BACHATA <input type="number" min="0" max="30" step="0.5" id="optTolB"></label>
+        <label>SALSA <input type="number" min="0" max="30" step="0.5" id="optTolS"></label>
+        <label>ZOUK <input type="number" min="0" max="30" step="0.5" id="optTolZ"></label>
+      </span>
+    </div>
     <label class="opt"><span data-i18n="set.artist"></span><input type="number" min="0" max="10" step="1" id="optArtist"></label>
     <label class="opt"><span data-i18n="set.variety"></span>
       <select id="optVariety" class="lang-select">
@@ -125,6 +131,10 @@
     <label class="opt chk"><input type="checkbox" id="optAutoGenre"><span data-i18n="set.autoGenre"></span></label>
     <label class="opt col"><span data-i18n="set.db"></span><input type="text" id="optDb" placeholder="~/Music/djay/djay Media Library.djayMediaLibrary"></label>
     <div class="dbinfo" id="dbInfo"></div>
+    <h2 class="sub" data-i18n="fold.title"></h2>
+    <p class="hint" data-i18n="fold.hint"></p>
+    <div id="folderList"></div>
+    <div class="opt"><span class="dbinfo" id="folderInfo"></span><button class="hw small" style="width:auto" id="btnAddFolder" data-i18n="fold.add"></button></div>
     <h2 class="sub" data-i18n="upd.title"></h2>
     <label class="opt chk"><input type="checkbox" id="optAutoUpdate"><span data-i18n="upd.auto"></span></label>
     <div class="opt"><span class="dbinfo" id="updInfo"></span><button class="hw small" style="width:auto" id="btnCheckUpdate" data-i18n="upd.checkNow"></button></div>

@@ -242,3 +242,15 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
   .filter-note { display: none; }
 }
 .opt select.lang-select { width: 220px; max-width: 55%; }
+
+.seg button.off-night { opacity: .55; }
+.bpmtag { font-style: normal; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: .03em; }
+.bpmtag.up { color: #1a0d00; background: #ffb347; }
+.bpmtag.down { color: #001426; background: #7cc8ff; }
+.tols { display: flex; gap: 6px; }
+.tols label { font: 700 10px var(--label); letter-spacing: .08em; color: var(--muted); display: flex; align-items: center; gap: 3px; }
+.tols input { width: 52px !important; }
+.folder { display: flex; align-items: center; gap: 6px; margin: 4px 0; font: 11px var(--mono); }
+.folder span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.folder .rm { width: auto; padding: 3px 7px; }
+@media (max-width: 560px) { .bpmtag { font-size: 9px; padding: 0 4px; } }

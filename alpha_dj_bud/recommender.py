@@ -2,7 +2,8 @@
 from . import artists, camelot
 
 DEFAULTS = {
-    "bpmTolerance": 4.0,       # ± BPM
+    "bpmTolerance": 4.0,       # ± BPM (fallback)
+    "bpmToleranceByGenre": {"bachata": 4.0, "salsa": 6.0, "zouk": 10.0},
     "halfDouble": False,       # also accept half/double tempo matches
     "artistWindow": 1,         # no shared artist with the last N tracks
     "avoidReplays": True,      # skip tracks already played in this set
@@ -26,7 +27,9 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
     """Return (suggestions, stats). Each suggestion is a dict for the UI."""
     opts = dict(DEFAULTS)
     opts.update(settings or {})
-    tol = float(opts["bpmTolerance"])
+    by_genre = dict(DEFAULTS["bpmToleranceByGenre"])
+    by_genre.update(opts.get("bpmToleranceByGenre") or {})
+    tol = float(by_genre.get(genre, opts["bpmTolerance"]))
     stats = {"pool": len(pool_ids), "noData": 0, "key": 0, "bpm": 0, "artist": 0, "played": 0}
     if current is None:
         return [], stats
@@ -68,9 +71,10 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
             continue
 
         key_s = camelot.RELATION_BASE_SCORE[rel]
-        bpm_s = 1.0 - min(1.0, abs(d) / (tol + 1.0))
+        # BPM closeness counts less than the key: the whole ± range stays useful
+        bpm_s = 1.0 - 0.5 * min(1.0, abs(d) / max(tol, 0.5))
         learned, reasons = brain.score(genre, current, t, rel) if brain else (0.5, [])
-        score = (1 - w_learn) * (0.6 * key_s + 0.4 * bpm_s) + w_learn * learned
+        score = (1 - w_learn) * (0.75 * key_s + 0.25 * bpm_s) + w_learn * learned
         if variety:
             jit = brain.jitter(set_id, current.id, tid) if brain else 0.5
             score = score * (1 - 0.25 * variety) + 0.25 * variety * jit
@@ -97,4 +101,23 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
             if mine:
                 seen.append(mine)
     out = first + later
+    out = _bpm_picks(out, tol)
     return out[: int(opts["limit"])], stats
+
+
+def _bpm_picks(items, tol):
+    """Tag the best track to go UP and the best to go DOWN in BPM and keep them
+    in the first positions, so the top of the list spans the whole BPM range."""
+    step = max(1.0, 0.4 * tol)
+    up = next((x for x in items if x["bpmDelta"] >= step), None)
+    down = next((x for x in items if x["bpmDelta"] <= -step), None)
+    for x, tag in ((up, "up"), (down, "down")):
+        if x is not None:
+            x["bpmTag"] = tag
+    if not items:
+        return items
+    head = [items[0]]
+    for x in (up, down):
+        if x is not None and x not in head:
+            head.append(x)
+    return head + [x for x in items if x not in head]

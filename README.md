@@ -17,7 +17,8 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
    - **Folder / Playlist**: one folder or playlist per genre — from djay's own playlists **or from the Music app** (the "Music" source in djay, listed under "Apple Music (Music app)"). The menu is split into two groups, **djay** and **Apple Music**, and also offers "All djay tracks", "Whole Music library" and special lists like "Purchased". Folders include every playlist inside them. Bud remembers the choice for each genre.
 3. **Suggests the next tracks** from the chosen folder, with these rules:
    - **Key (Camelot Wheel)**. Example with 3A playing: **3A, 3B, 2A, 4A** and **9A, 9B** (6-step jump). The same rules apply to B keys.
-   - **BPM**: same BPM or at most **±4** (adjustable).
+   - **BPM**: within a tolerance **set per genre** in ⚙ Settings (default Bachata ±4, Salsa ±6, Zouk ±10).
+   - **Up / down in BPM**: among the first suggestions Bud always tries to include one track **to go up** (orange label) and one **to go down** (blue label) in BPM, so you can steer the energy of the set.
    - **Never the same artist twice in a row.** Featurings and collaborations count too ("Romeo Santos & Drake", "feat. Romeo Santos"...). The rule can cover the last N tracks.
    - Tracks already played in the set are excluded.
    - **Variety from night to night**: if you play the same hit on Friday and Saturday, the suggestions after it change. Tracks you put after it recently, and the ones already suggested then, move down. Within the same set the list stays stable. Adjustable in ⚙ Settings → Suggestion variety (Off / Low / Medium / High).
@@ -31,8 +32,9 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
 
    The more sets you play, the more this counts (**CONFIDENCE** meter). **"Learn from djay history"** also learns from sets you played in the past.
 5. **Music app tracks**: Bud reads the Music app library (playlists, files). Key and BPM come from djay's analysis when djay has analysed the track, otherwise from the Camelot key / BPM written in the comments or file name (e.g. "12A - 126 - Title", "12A - Energy 6" from Mixed In Key). The first time, macOS asks to allow access to **Media & Apple Music**. Streaming tracks (Apple Music streaming, Spotify, TIDAL) have no file and can't be read or dragged.
-6. **Drag into djay**: drag a suggestion onto a djay deck — drop it on the deck's **waveform area** (not on the title), just like dragging a file from the Finder. Rows with the ⠿ mark have a local file. Streaming tracks (TIDAL, Apple Music...) can't be dragged: load them from djay.
-7. **MINI window**: the **▣ MINI** button turns the app into a small 360×560 window that **stays on top** of djay. It shows only the genre, the playing track and the suggestions.
+6. **Folders on the Mac** (like djay's Finder / My files source and USB drives): in ⚙ Settings → Folders on the Mac, add the folders with your music. Each sub-folder becomes a playlist in the "Folders on the Mac" group. Title, artist, BPM and key come from djay's analysis or from the file tags / name.
+7. **Drag into djay**: drag a suggestion onto a djay deck — drop it on the deck's **waveform area** (not on the title), just like dragging a file from the Finder. Rows with the ⠿ mark have a local file. Streaming tracks (TIDAL, Apple Music...) can't be dragged: load them from djay.
+8. **MINI window**: the **▣ MINI** button turns the app into a small window that **stays on top** of djay, with only the genre buttons (clickable), the playing track and the suggestions. The normal window and the MINI window each **remember their own position and size**, and are always kept on screen.
 
 <img src="docs/screenshot-mini.png" width="260" alt="MINI mode">
 
@@ -131,7 +133,7 @@ Bud Brain is the part of the app that **learns your taste**. Everything stays on
 | Like / don't suggest | **♥** / **✕** on the suggestion row |
 | End of the night | **END SET**: saves what Bud has learned |
 | New set | **NEW SET**: resets played and hidden tracks |
-| Settings ⚙ | Language (English / Italiano / Español), suggestion variety, BPM tolerance, artist window, 6-step jump, double/half tempo, key from Mixed In Key comments, automatic genre switch, library path |
+| Settings ⚙ | Language (English / Italiano / Español), BPM tolerance per genre, suggestion variety, folders on the Mac, artist window, 6-step jump, double/half tempo, key from Mixed In Key comments, automatic genre switch, library path |
 
 On a **mixed night**, if you play a track that sits in another genre's folder, Bud switches genre on its own.
 
@@ -155,6 +157,7 @@ alpha_dj_bud/
   server.py        local server + djay monitor
   updater.py       in-app updates from GitHub releases
   music_library.py Music app library (iTunesLibrary framework)
+  local_files.py   folders on the Mac (tags via mutagen)
   native_drag.py   macOS file drag from the window onto djay (3 methods, the one djay accepts is remembered)
   app.py           launch and window (pywebview / browser)
   web/             interface (HTML/CSS/JS, translations in i18n.js)
@@ -173,5 +176,6 @@ To add a language, copy the `en` block in `alpha_dj_bud/web/i18n.js`, translate 
 - djay's database format is undocumented. A djay update could change it; in that case the **DJAY** light turns red.
 - The playing track comes from djay's history, so it appears when djay logs it as played.
 - If a drag doesn't start, the app shows a message with the reason: send it to support. Details are also in `~/Library/Application Support/Alpha DJ Bud/alpha-dj-bud.log` (lines starting with `[drag]`).
+- **Spotify, TIDAL, SoundCloud, Beatport and Apple Music streaming** playlists can't be read: djay doesn't save them on the Mac and those tracks have no file. Tracks djay has already analysed still appear in "All djay tracks".
 - Drag works only for tracks with a local file, and the drive holding it must be connected. The full drag to djay needs the native window (installed app); in the browser it depends on the browser.
 - With the native window, the Dock and the menu bar show "Alpha DJ Bud" and its icon; in a few places macOS may still say "Python", because that's the engine running the app.
