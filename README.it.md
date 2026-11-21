@@ -16,7 +16,7 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 3. **Consiglia i prossimi brani** della cartella scelta, con queste regole:
    - **Key (Camelot Wheel)**. Esempio con 3A in riproduzione: **3A, 3B, 2A, 4A** e **9A, 9B** (salto di 6). Vale allo stesso modo per le key B.
    - **BPM**: entro una tolleranza **impostata per ogni genere** in ⚙ Impostazioni (di base Bachata ±4, Salsa ±6, Zouk ±10).
-   - **Salire / scendere di BPM**: tra i primi consigli Bud prova sempre a mettere un brano **per salire** (etichetta arancione) e uno **per scendere** (etichetta blu) di BPM, così puoi guidare l'energia del set.
+   - **Salire / scendere di BPM**: dopo i 3 consigli migliori, alle posizioni 4 e 5 trovi il brano migliore **per salire** (etichetta arancione) e quello **per scendere** (etichetta blu) di BPM, così puoi guidare l'energia del set.
    - **Mai lo stesso artista di seguito.** Riconosce anche featuring e collaborazioni ("Romeo Santos & Drake", "feat. Romeo Santos"...). Puoi estendere la regola agli ultimi N brani.
    - Esclude i brani già suonati nel set.
    - **Varietà da una serata all'altra**: se suoni la stessa hit venerdì e sabato, i consigli dopo quel brano cambiano. I brani che ci hai messo dopo di recente, e quelli già proposti allora, scendono in classifica. Durante lo stesso set la lista resta stabile. Si regola in ⚙ Impostazioni → Varietà dei consigli (Spenta / Bassa / Media / Alta).

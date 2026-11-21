@@ -18,7 +18,7 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
 3. **Suggests the next tracks** from the chosen folder, with these rules:
    - **Key (Camelot Wheel)**. Example with 3A playing: **3A, 3B, 2A, 4A** and **9A, 9B** (6-step jump). The same rules apply to B keys.
    - **BPM**: within a tolerance **set per genre** in ⚙ Settings (default Bachata ±4, Salsa ±6, Zouk ±10).
-   - **Up / down in BPM**: among the first suggestions Bud always tries to include one track **to go up** (orange label) and one **to go down** (blue label) in BPM, so you can steer the energy of the set.
+   - **Up / down in BPM**: after the 3 best suggestions, positions 4 and 5 hold the best track **to go up** (orange label) and the best **to go down** (blue label) in BPM, so you can steer the energy of the set.
    - **Never the same artist twice in a row.** Featurings and collaborations count too ("Romeo Santos & Drake", "feat. Romeo Santos"...). The rule can cover the last N tracks.
    - Tracks already played in the set are excluded.
    - **Variety from night to night**: if you play the same hit on Friday and Saturday, the suggestions after it change. Tracks you put after it recently, and the ones already suggested then, move down. Within the same set the list stays stable. Adjustable in ⚙ Settings → Suggestion variety (Off / Low / Medium / High).

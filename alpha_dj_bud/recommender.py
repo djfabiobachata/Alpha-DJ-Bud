@@ -106,18 +106,16 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
 
 
 def _bpm_picks(items, tol):
-    """Tag the best track to go UP and the best to go DOWN in BPM and keep them
-    in the first positions, so the top of the list spans the whole BPM range."""
+    """Keep the 3 best suggestions on top, then put the best track to go UP
+    (position 4) and the best to go DOWN (position 5) in BPM, chosen among
+    the others, so the list also covers the whole BPM range."""
     step = max(1.0, 0.4 * tol)
-    up = next((x for x in items if x["bpmDelta"] >= step), None)
-    down = next((x for x in items if x["bpmDelta"] <= -step), None)
+    top, rest = items[:3], items[3:]
+    up = next((x for x in rest if x["bpmDelta"] >= step), None)
+    down = next((x for x in rest if x["bpmDelta"] <= -step), None)
+    picks = []
     for x, tag in ((up, "up"), (down, "down")):
         if x is not None:
             x["bpmTag"] = tag
-    if not items:
-        return items
-    head = [items[0]]
-    for x in (up, down):
-        if x is not None and x not in head:
-            head.append(x)
-    return head + [x for x in items if x not in head]
+            picks.append(x)
+    return top + picks + [x for x in rest if x not in picks]
