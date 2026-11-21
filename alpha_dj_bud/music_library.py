@@ -57,6 +57,8 @@ def load():
     tracks = {}
     for it in lib.allMediaItems() or []:
         try:
+            if int(it.mediaKind()) != 2:  # songs only (no podcasts, videos, audiobooks)
+                continue
             pid = _pid(it.persistentID())
             if pid is None:
                 continue
@@ -79,15 +81,19 @@ def load():
     playlists = []
     for pl in lib.allPlaylists() or []:
         try:
-            if pl.isMaster() or not pl.isVisible() or pl.distinguishedKind() != 0:
-                continue
+            if pl.isMaster() or not pl.isVisible():
+                continue  # the whole library is offered separately as "Musica"
             kind = int(pl.kind())  # 3 = folder
             items = [_pid(i.persistentID()) for i in (pl.items() or [])]
+            special = int(pl.distinguishedKind()) != 0  # e.g. "Purchased" / "Acquisti"
+            if special and not any(i in tracks for i in items):
+                continue  # podcasts, movies, TV shows...
             playlists.append({
                 "pid": _pid(pl.persistentID()),
                 "parent": _pid(pl.parentID()) if pl.parentID() is not None else None,
                 "name": str(pl.name() or ""),
                 "folder": kind == 3,
+                "special": special,
                 "items": [i for i in items if i in tracks],
             })
         except Exception:

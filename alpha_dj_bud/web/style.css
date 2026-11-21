@@ -152,7 +152,6 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
 .trk.can-drag .rank::before { content: "⠿"; display: block; font-size: 11px; color: var(--edge); line-height: 1; }
 .trk.dragging { opacity: .5; border-color: var(--green); }
 .trk.no-file { opacity: .75; }
-.drag-hint { text-align: center; font: 11px var(--mono); color: var(--green-dim); margin: -6px 0 6px; }
 .hint { margin: -4px 0 8px; font-size: 11px; color: var(--muted); }
 .empty { color: var(--muted); text-align: center; padding: 26px 10px; font-size: 13px; }
 .empty b { color: var(--text); }
@@ -206,35 +205,40 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
 
 /* ============ COMPACT ("MINI") – small window on top of djay ============ */
 @media (max-width: 560px) {
-  #rack { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto 1fr; gap: 6px; padding: 6px;
+  #rack { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto 1fr; gap: 4px; padding: 4px;
     grid-template-areas: "bar" "setup" "now" "next"; height: 100vh; }
   .side, .foot, .leds, #statusLcd, #btnSettings, .setup h2, #fieldEvent, .setup .row-btns, .wheel-wrap, .now h2 { display: none; }
-  .bar { padding: 6px 8px; gap: 8px; justify-content: space-between; }
-  .hw.update { padding: 6px 7px; font-size: 11px; }
-  .logo { font-size: 18px; }
-  .panel { padding: 8px; border-radius: 8px; }
+  /* thin top bar */
+  .bar { padding: 3px 6px; gap: 6px; justify-content: space-between; border-radius: 6px; }
+  .logo { font-size: 13px; letter-spacing: .06em; -webkit-text-stroke: 0; text-shadow: 1px 1px 0 var(--purple-deep); }
+  .hdr-btns .hw, .hw.update { padding: 3px 8px; font-size: 10px; border-radius: 4px; }
+  .panel { padding: 4px 6px; border-radius: 6px; }
   .panel::before, .panel::after { display: none; }
-  .setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
   .panel, .readout, .now-info, .lcd { min-width: 0; }
-  .hdr-btns .hw { padding: 6px 9px; }
+  /* thin genre + playlist row */
+  .setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; }
   .setup .field { margin: 0; }
   .setup .field > span { display: none; }
-  .seg button { padding: 7px 0; font-size: 11px; }
-  .setup select { padding: 6px; font-size: 11px; }
+  .seg { gap: 2px; }
+  .seg button { padding: 3px 0; font-size: 9px; border-radius: 4px; }
+  .setup select { padding: 2px 4px; font-size: 10px; border-radius: 4px; }
+  /* now playing on one line: title | key | bpm */
   .now-body { display: block; }
-  .lcd-track { min-height: 0; padding: 6px 8px; }
-  .lcd-track .t { font-size: 13px; }
-  .lcd-track .a { font-size: 11px; }
-  .readouts { margin-top: 6px; gap: 6px; }
+  .now-info { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px; align-items: stretch; }
+  .lcd-track { min-height: 0; padding: 2px 6px; border-radius: 4px; }
+  .lcd-track .t { font-size: 11px; }
+  .lcd-track .a { font-size: 9px; }
+  .readouts { margin-top: 0; gap: 3px; flex: none; }
+  .now-info .readout { flex: none; min-width: auto; }
   .readout > span, .readout small { display: none; }
-  .seg7 { font-size: 20px; padding: 4px; margin: 0; }
-  .next h2 { margin-bottom: 6px; font-size: 12px; }
+  .seg7 { font-size: 13px; padding: 4px 5px; margin: 0; border-radius: 4px; height: 100%; display: flex; align-items: center; }
+  .next { padding: 6px; }
+  .next h2 { margin-bottom: 4px; font-size: 11px; }
   .trk { grid-template-columns: 38px minmax(0, 1fr) 50px; gap: 6px; padding: 5px 6px; }
   .trk .rank, .trk .score { display: none; }
   .badge { min-width: 36px; font-size: 12px; }
   .trk .bpm { font-size: 12px; }
   .acts { display: none; }
-  .drag-hint { margin: -4px 0 4px; }
   .filter-note { display: none; }
 }
 .opt select.lang-select { width: 220px; max-width: 55%; }

@@ -101,7 +101,6 @@ const I18N = {
     "var.25": "Low",
     "var.50": "Medium",
     "var.80": "High",
-    "drag.title": "⠿ drag a track onto the waveform of a djay deck",
     "drag.hint": "Drag onto the waveform area of a djay deck to load it",
     "drag.noFile": "Streaming or missing file: load it from djay",
     "drag.missing": "File not found (is the drive connected?)",
@@ -127,6 +126,10 @@ const I18N = {
     "drag.rejected": "djay didn't accept the drop: drag it again, Bud will try another method",
     "set.music": "Music app (Apple Music library): {n} tracks",
     "set.musicErr": "Music app library not readable: allow Alpha DJ Bud (Python) in System Settings → Privacy & Security → Media & Apple Music",
+    "grp.djay": "djay",
+    "grp.music": "Apple Music (Music app)",
+    "pl.djayAll": "All djay tracks",
+    "pl.musicAll": "Whole Music library",
   },
 
   it: {
@@ -228,7 +231,6 @@ const I18N = {
     "var.25": "Bassa",
     "var.50": "Media",
     "var.80": "Alta",
-    "drag.title": "⠿ trascina un brano sulla forma d'onda di un deck di djay",
     "drag.hint": "Trascinalo sulla forma d'onda di un deck di djay per caricarlo",
     "drag.noFile": "Brano in streaming o file mancante: caricalo da djay",
     "drag.missing": "File non trovato (il disco è collegato?)",
@@ -254,6 +256,10 @@ const I18N = {
     "drag.rejected": "djay non ha accettato il brano: trascinalo di nuovo, Bud proverà un altro metodo",
     "set.music": "App Musica (libreria Apple Music): {n} brani",
     "set.musicErr": "Libreria dell'app Musica non leggibile: consenti Alpha DJ Bud (Python) in Impostazioni di Sistema → Privacy e sicurezza → Media e Apple Music",
+    "grp.djay": "djay",
+    "grp.music": "Apple Music (app Musica)",
+    "pl.djayAll": "Tutti i brani di djay",
+    "pl.musicAll": "Tutta la libreria Musica",
   },
 
   es: {
@@ -355,7 +361,6 @@ const I18N = {
     "var.25": "Baja",
     "var.50": "Media",
     "var.80": "Alta",
-    "drag.title": "⠿ arrastra un tema a la forma de onda de un deck de djay",
     "drag.hint": "Arrástralo a la forma de onda de un deck de djay para cargarlo",
     "drag.noFile": "Tema en streaming o archivo ausente: cárgalo desde djay",
     "drag.missing": "Archivo no encontrado (¿está conectado el disco?)",
@@ -381,6 +386,10 @@ const I18N = {
     "drag.rejected": "djay no aceptó el tema: arrástralo otra vez, Bud probará otro método",
     "set.music": "App Música (biblioteca Apple Music): {n} temas",
     "set.musicErr": "Biblioteca de la app Música no legible: permite Alpha DJ Bud (Python) en Ajustes del Sistema → Privacidad y seguridad → Multimedia y Apple Music",
+    "grp.djay": "djay",
+    "grp.music": "Apple Music (app Música)",
+    "pl.djayAll": "Todos los temas de djay",
+    "pl.musicAll": "Toda la biblioteca de Música",
   },
 };
 

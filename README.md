@@ -14,7 +14,7 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
 2. **You set it up before the night:**
    - **Event**: Bachata, Salsa, Zouk, or a mixed night (Bachata + Salsa).
    - **Now playing**: the genre you are playing right now.
-   - **Folder / Playlist**: one folder or playlist per genre — from djay's own playlists **or from the Music app** (the "Music" source in djay, listed under "Apple Music (Musica)"). Folders include every playlist inside them. Bud remembers the choice for each genre.
+   - **Folder / Playlist**: one folder or playlist per genre — from djay's own playlists **or from the Music app** (the "Music" source in djay, listed under "Apple Music (Music app)"). The menu is split into two groups, **djay** and **Apple Music**, and also offers "All djay tracks", "Whole Music library" and special lists like "Purchased". Folders include every playlist inside them. Bud remembers the choice for each genre.
 3. **Suggests the next tracks** from the chosen folder, with these rules:
    - **Key (Camelot Wheel)**. Example with 3A playing: **3A, 3B, 2A, 4A** and **9A, 9B** (6-step jump). The same rules apply to B keys.
    - **BPM**: same BPM or at most **±4** (adjustable).
@@ -91,6 +91,36 @@ python3 -m alpha_dj_bud.app            # native window
 python3 -m alpha_dj_bud.app --browser  # in the browser
 python3 -m alpha_dj_bud.app --db "/path/to/MediaLibrary.db"
 ```
+
+## How Bud Brain works
+
+Bud Brain is the part of the app that **learns your taste**. Everything stays on your Mac (`brain.json`), separately for each genre (Bachata, Salsa, Zouk), and nothing is sent anywhere.
+
+**What it records**, every time a new track starts in djay:
+
+| What | How it's used |
+|---|---|
+| **Transitions** (track A → track B) | If you often play B after A, B goes up when A is playing ("you played it after this track") |
+| **How often each track is played** | Your most played tracks get a small boost ("one of your most played") |
+| **Key relations you use** | If you usually mix in the same key, or +1, or relative A/B, those relations score higher |
+| **BPM direction** | If you tend to go up, stay level or go down in BPM, suggestions that do the same score higher |
+| **Suggestions you skip** | Tracks shown in the top 5 that you keep not choosing slowly go down |
+| **♥ / ✕** | ♥ raises a track for that genre; ✕ hides it for the current set |
+| **Recent nights** | Follow-ups you used after a hit in recent sets go down for a while, so suggestions change from night to night (Settings → Suggestion variety) |
+
+**How a suggestion is scored**
+
+1. **Hard rules first** (never broken): compatible Camelot key, BPM within ±4, no artist from the last N tracks, not already played in the set.
+2. **Base score**: how good the key relation is (same key best, then relative / ±1, then +6) and how close the BPM is.
+3. **Learned score**: the table above, blended with the base score. Its weight grows with **Confidence**.
+4. **Variety**: a small night-to-night rotation, stable within the same set.
+
+**The two dials**
+
+- **CONFIDENCE**: how much Bud trusts what it has learned for the selected genre. It grows with the number of transitions it has seen: 0% = brand new (suggestions are based only on key and BPM), 100% = after about 40 transitions (the learned taste weighs up to about a third of the score).
+- **FOLLOWED**: the share of your transitions where the track you played next was one of Bud's suggestions at that moment. It tells you how well Bud is guessing your choices.
+
+**Tips**: press **LEARN FROM DJAY HISTORY** once per genre so Bud learns from the sets already in djay; press **END SET** at the end of the night. To start from scratch, delete `brain.json` in `~/Library/Application Support/Alpha DJ Bud/`.
 
 ## During the night
 

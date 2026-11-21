@@ -12,7 +12,7 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 2. **Si imposta prima della serata:**
    - **Serata**: Bachata, Salsa, Zouk oppure mista (Bachata + Salsa).
    - **Ora suono**: il genere che stai suonando in quel momento.
-   - **Cartella/Playlist**: una cartella o playlist per ogni genere, dalle playlist di djay **o dall'app Musica** (la sorgente "Musica" di djay, elencata sotto "Apple Music (Musica)") (le cartelle includono tutte le playlist che contengono). Bud ricorda la scelta per ogni genere.
+   - **Cartella/Playlist**: una cartella o playlist per ogni genere, dalle playlist di djay **o dall'app Musica** (la sorgente "Musica" di djay, elencata sotto "Apple Music (app Musica)"). Il menu è diviso in due gruppi, **djay** e **Apple Music**, e offre anche "Tutti i brani di djay", "Tutta la libreria Musica" e liste speciali come "Acquisti" (le cartelle includono tutte le playlist che contengono). Bud ricorda la scelta per ogni genere.
 3. **Consiglia i prossimi brani** della cartella scelta, con queste regole:
    - **Key (Camelot Wheel)**. Esempio con 3A in riproduzione: **3A, 3B, 2A, 4A** e **9A, 9B** (salto di 6). Vale allo stesso modo per le key B.
    - **BPM**: lo stesso BPM oppure al massimo **±4** (il valore si può cambiare).
@@ -90,6 +90,36 @@ python3 -m alpha_dj_bud.app            # finestra nativa
 python3 -m alpha_dj_bud.app --browser  # nel browser
 python3 -m alpha_dj_bud.app --db "/percorso/MediaLibrary.db"
 ```
+
+## Come funziona Bud Brain
+
+Bud Brain è la parte dell'app che **impara i tuoi gusti**. Tutto resta sul tuo Mac (`brain.json`), separato per ogni genere (Bachata, Salsa, Zouk), e niente viene inviato da nessuna parte.
+
+**Cosa registra**, ogni volta che in djay parte un nuovo brano:
+
+| Cosa | Come viene usato |
+|---|---|
+| **Passaggi** (brano A → brano B) | Se metti spesso B dopo A, B sale quando suona A ("l'hai già messo dopo questo brano") |
+| **Quante volte suoni ogni brano** | I tuoi brani più suonati ricevono una piccola spinta ("uno dei tuoi più suonati") |
+| **Relazioni di key che usi** | Se mixi di solito nella stessa key, o +1, o relativa A/B, quelle relazioni valgono di più |
+| **Direzione dei BPM** | Se tendi a salire, restare o scendere di BPM, i consigli che fanno lo stesso valgono di più |
+| **Consigli che salti** | I brani nei primi 5 che non scegli mai scendono piano piano |
+| **♥ / ✕** | ♥ alza un brano per quel genere; ✕ lo nasconde per il set in corso |
+| **Serate recenti** | I brani che hai messo dopo una hit nelle ultime serate scendono per un po', così i consigli cambiano da una serata all'altra (Impostazioni → Varietà dei consigli) |
+
+**Come viene calcolato un consiglio**
+
+1. **Prima le regole fisse** (mai infrante): key Camelot compatibile, BPM entro ±4, nessun artista degli ultimi N brani, non già suonato nel set.
+2. **Punteggio base**: quanto è buona la relazione di key (stessa key la migliore, poi relativa / ±1, poi +6) e quanto sono vicini i BPM.
+3. **Punteggio imparato**: la tabella qui sopra, mescolata al punteggio base. Il suo peso cresce con la **Fiducia**.
+4. **Varietà**: una piccola rotazione da una serata all'altra, stabile durante lo stesso set.
+
+**Le due manopole**
+
+- **FIDUCIA (CONFIDENCE)**: quanto Bud si fida di ciò che ha imparato per il genere scelto. Cresce con il numero di passaggi visti: 0% = appena iniziato (i consigli si basano solo su key e BPM), 100% = dopo circa 40 passaggi (i gusti imparati pesano fino a circa un terzo del punteggio).
+- **SEGUITI (FOLLOWED)**: la percentuale dei tuoi passaggi in cui il brano che hai messo era tra i consigli di Bud in quel momento. Ti dice quanto Bud sta indovinando le tue scelte.
+
+**Consigli**: premi **IMPARA DALLA CRONOLOGIA DJAY** una volta per genere, così Bud impara dai set già presenti in djay; premi **FINE SET** a fine serata. Per ripartire da zero cancella `brain.json` in `~/Library/Application Support/Alpha DJ Bud/`.
 
 ## Uso durante la serata
 

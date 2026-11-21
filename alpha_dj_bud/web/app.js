@@ -91,9 +91,7 @@ function render(s) {
   const allowed = s.event === "mista" ? s.mixedGenres : [s.event];
   $("genreSeg").innerHTML = s.genres.map((g) =>
     `<button data-g="${g.id}" class="${g.id === s.genre ? "on" : ""}" ${allowed.includes(g.id) ? "" : "disabled"}>${g.name.toUpperCase()}</button>`).join("");
-  const opts = [["", t("setup.choose")]].concat(
-    s.playlists.map((p) => [p.id, `${"  ".repeat(p.depth)}${p.type === "folder" ? "📁" : "♫"} ${p.name} (${p.count})`]));
-  fillSelect($("selPlaylist"), opts, s.playlistByGenre[s.genre] || "");
+  fillPlaylists($("selPlaylist"), s.playlists, s.playlistByGenre[s.genre] || "");
   $("poolCount").textContent = s.poolSize ? `· ${s.poolSize} ${t("setup.tracks")}` : "";
 
   // now playing
@@ -158,6 +156,26 @@ function renderSuggestions(s) {
   const ex = ["key", "bpm", "artist", "played", "noData"].filter((k) => st[k]).map((k) => t("ex." + k, { n: st[k] }));
   $("filterNote").textContent = ex.length ? t("next.excluded") + ": " + ex.join(" · ") : "";
   rowsSig = ""; setTimeout(sendDragRows, 0);
+}
+
+function fillPlaylists(sel, playlists, value) {
+  const groups = [["djay", t("grp.djay")], ["music", t("grp.music")]];
+  const sig = LANG + JSON.stringify(playlists.map((p) => [p.id, p.name, p.count, p.depth, p.group]));
+  if (sel.dataset.sig !== sig) {
+    const opt = (p) => {
+      const name = p.label ? t(p.label) : p.name;
+      const icon = p.type === "folder" ? "📁" : "♫";
+      return `<option value="${esc(p.id)}">${"\u00a0\u00a0".repeat(p.depth)}${icon} ${esc(name)} (${p.count})</option>`;
+    };
+    let html = `<option value="">${esc(t("setup.choose"))}</option>`;
+    for (const [g, label] of groups) {
+      const items = playlists.filter((p) => (p.group || "djay") === g);
+      if (items.length) html += `<optgroup label="${esc(label)}">${items.map(opt).join("")}</optgroup>`;
+    }
+    sel.innerHTML = html;
+    sel.dataset.sig = sig;
+  }
+  if (document.activeElement !== sel) sel.value = value;
 }
 
 function fillSelect(sel, items, value) {

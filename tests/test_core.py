@@ -428,9 +428,14 @@ class AppleMusicMergeTest(unittest.TestCase):
         new = lib.get(ids[1])
         self.assertEqual((new.title, new.key, new.bpm), ("Es Evidente", "12A", 126.0))
         self.assertEqual(lib.file_path(ids[1]), f)       # draggable file
-        names = [(n["name"], n["depth"]) for n in lib.tree()]
-        self.assertIn(("Apple Music (Musica)", 0), names)
-        self.assertIn(("BCHTA", 2), names)
+        tree = lib.tree()
+        names = [(n["name"], n["depth"], n["group"]) for n in tree]
+        self.assertEqual(names[0], ("djay", 0, "djay"))           # all djay tracks first
+        self.assertIn(("Musica", 0, "music"), names)               # whole Music library
+        self.assertIn(("BCHTA", 1, "music"), names)
+        self.assertEqual(set(lib.tracks_in("am:all")), set(ids))
+        self.assertIn("t01", lib.tracks_in("djay:all"))
+        self.assertNotIn(ids[1], lib.tracks_in("djay:all"))
         self.assertEqual(lib.tracks_in("am:root"), ids)  # folder includes sub-playlists
         # NowPlaying from the Music source is found too
         self.assertEqual(lib.match_now_playing({"title": "Es Evidente", "artist": "Akai Rojas"}), ids[1])

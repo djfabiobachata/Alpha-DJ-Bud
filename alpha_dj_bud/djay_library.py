@@ -244,6 +244,9 @@ class DjayLibrary:
                 "children": list(p.get("childUUIDs") or []),
                 "tracks": entries,
             }
+        playlists["djay:all"] = {"id": "djay:all", "name": "djay", "label": "pl.djayAll",
+                                 "type": TYPE_PLAYLIST, "parent": "virtual", "children": [],
+                                 "tracks": [t for t in items if t in tracks]}
         self.playlists = playlists
         self._merge_apple_music()
 
@@ -352,6 +355,11 @@ class DjayLibrary:
         root = "am:root"
         self.playlists[root] = {"id": root, "name": "Apple Music (Musica)", "type": TYPE_FOLDER,
                                 "parent": "am", "children": [], "tracks": []}
+        all_ids = list(dict.fromkeys(ids.values()))
+        self.playlists["am:all"] = {"id": "am:all", "name": "Musica", "label": "pl.musicAll",
+                                    "type": TYPE_PLAYLIST, "parent": root, "children": [],
+                                    "tracks": all_ids}
+        self.playlists[root]["children"].append("am:all")
         for pl in am["playlists"]:
             pid = "am:pl:%d" % pl["pid"]
             parent = "am:pl:%d" % pl["parent"] if pl["parent"] else root
@@ -365,33 +373,42 @@ class DjayLibrary:
                 par["children"].append(pid)
 
     def tree(self):
-        """Folders and playlists as a nested list (for the dropdown)."""
-        def node(uid, depth):
+        """Folders and playlists for the dropdown, grouped by source:
+        'djay' (djay's own library) and 'music' (Apple's Music app)."""
+        def node(uid, depth, group):
             p = self.playlists.get(uid)
             if not p:
                 return []
-            out = [{"id": uid, "name": p["name"], "type": "folder" if p["type"] == TYPE_FOLDER else "playlist",
+            out = [{"id": uid, "name": p["name"], "label": p.get("label"), "group": group,
+                    "type": "folder" if p["type"] == TYPE_FOLDER else "playlist",
                     "depth": depth, "count": len(self.tracks_in(uid))}]
             for c in p["children"]:
-                out.extend(node(c, depth + 1))
+                out.extend(node(c, depth + 1, group))
             return out
 
-        roots = [p for p in self.playlists.values()
-                 if p["parent"] in (None, ROOT_UUID) or p["parent"] not in self.playlists]
-        # the invisible root folder ("Playlist" with no parent) holds the top level
         result = []
+        if "djay:all" in self.playlists:
+            result.extend(node("djay:all", 0, "djay"))
+        djay = {k: p for k, p in self.playlists.items() if not k.startswith(("am:", "djay:"))}
+        roots = [p for p in djay.values()
+                 if p["parent"] in (None, ROOT_UUID) or p["parent"] not in djay]
         seen = set()
+        # the invisible root folder ("Playlist" with no parent) holds the top level
         for r in roots:
             if r["parent"] is None and r["type"] == TYPE_FOLDER and r["children"]:
                 for c in r["children"]:
                     if c not in seen:
                         seen.add(c)
-                        result.extend(node(c, 0))
+                        result.extend(node(c, 0, "djay"))
         for r in sorted(roots, key=lambda p: p["name"].lower()):
             if r["id"] in seen or (r["parent"] is None and r["type"] == TYPE_FOLDER):
                 continue
             seen.add(r["id"])
-            result.extend(node(r["id"], 0))
+            result.extend(node(r["id"], 0, "djay"))
+        root = self.playlists.get("am:root")
+        if root:
+            for c in root["children"]:
+                result.extend(node(c, 0, "music"))
         return result
 
     def tracks_in(self, uid, _seen=None):
