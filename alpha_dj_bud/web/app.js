@@ -355,6 +355,8 @@ $("btnAddFolder").onclick = async () => {
   setTimeout(() => { refresh(true).then(renderFolders); }, 300);
 };
 
+$("btnMusicRetry").onclick = () => act("music-retry", {}, t("set.musicRetrying"));
+
 /* settings */
 $("btnSettings").onclick = () => {
   const o = S.options;
@@ -370,7 +372,9 @@ $("btnSettings").onclick = () => {
   $("optComments").checked = S.keyFromComments; $("optAutoGenre").checked = S.autoGenre;
   $("optDb").value = "";
   $("dbInfo").textContent = (S.db.path ? t("set.inUse", { path: S.db.path, n: S.db.tracks }) : t("set.noDb")) +
-    "\n" + (S.music && S.music.ok ? t("set.music", { n: S.music.tracks }) : t("set.musicErr"));
+    "\n" + (S.music && S.music.ok ? t("set.music", { n: S.music.tracks })
+                                  : t("set.musicErr") + (S.music && S.music.error ? "\n→ " + S.music.error : ""));
+  $("btnMusicRetry").hidden = !!(S.music && S.music.ok);
   $("settings").hidden = false;
 };
 // live preview of the language inside the dialog

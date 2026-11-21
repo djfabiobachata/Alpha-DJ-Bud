@@ -125,7 +125,7 @@ const I18N = {
     "np.unmatched": "djay is playing \"{title}\", which isn't in djay's library (streaming?)",
     "drag.rejected": "djay didn't accept the drop: drag it again, Bud will try another method",
     "set.music": "Music app (Apple Music library): {n} tracks",
-    "set.musicErr": "Music app library not readable: allow Alpha DJ Bud (Python) in System Settings → Privacy & Security → Media & Apple Music",
+    "set.musicErr": "Music app library not readable. Allow Alpha DJ Bud in System Settings → Privacy & Security → Media & Apple Music (and Automation → Music), then press Retry",
     "grp.djay": "djay",
     "grp.music": "Apple Music (Music app)",
     "pl.djayAll": "All djay tracks",
@@ -142,6 +142,8 @@ const I18N = {
     "fold.count": "{n} tracks found",
     "fold.prompt": "Folder path (e.g. /Volumes/USB/Music)",
     "fold.added": "Folder added: reading the files…",
+    "set.musicRetry": "RETRY MUSIC LIBRARY",
+    "set.musicRetrying": "Reading the Music library… (macOS may ask to allow access to Music)",
   },
 
   it: {
@@ -267,7 +269,7 @@ const I18N = {
     "np.unmatched": "djay sta suonando \"{title}\", che non è nella libreria di djay (streaming?)",
     "drag.rejected": "djay non ha accettato il brano: trascinalo di nuovo, Bud proverà un altro metodo",
     "set.music": "App Musica (libreria Apple Music): {n} brani",
-    "set.musicErr": "Libreria dell'app Musica non leggibile: consenti Alpha DJ Bud (Python) in Impostazioni di Sistema → Privacy e sicurezza → Media e Apple Music",
+    "set.musicErr": "Libreria dell'app Musica non leggibile. Consenti Alpha DJ Bud in Impostazioni di Sistema → Privacy e sicurezza → Media e Apple Music (e Automazione → Musica), poi premi Riprova",
     "grp.djay": "djay",
     "grp.music": "Apple Music (app Musica)",
     "pl.djayAll": "Tutti i brani di djay",
@@ -284,6 +286,8 @@ const I18N = {
     "fold.count": "{n} brani trovati",
     "fold.prompt": "Percorso della cartella (es. /Volumes/USB/Musica)",
     "fold.added": "Cartella aggiunta: lettura dei file…",
+    "set.musicRetry": "RIPROVA LIBRERIA MUSICA",
+    "set.musicRetrying": "Lettura della libreria Musica… (macOS potrebbe chiedere il permesso per Musica)",
   },
 
   es: {
@@ -409,7 +413,7 @@ const I18N = {
     "np.unmatched": "djay está sonando \"{title}\", que no está en la biblioteca de djay (¿streaming?)",
     "drag.rejected": "djay no aceptó el tema: arrástralo otra vez, Bud probará otro método",
     "set.music": "App Música (biblioteca Apple Music): {n} temas",
-    "set.musicErr": "Biblioteca de la app Música no legible: permite Alpha DJ Bud (Python) en Ajustes del Sistema → Privacidad y seguridad → Multimedia y Apple Music",
+    "set.musicErr": "Biblioteca de la app Música no legible. Permite Alpha DJ Bud en Ajustes del Sistema → Privacidad y seguridad → Multimedia y Apple Music (y Automatización → Música) y pulsa Reintentar",
     "grp.djay": "djay",
     "grp.music": "Apple Music (app Música)",
     "pl.djayAll": "Todos los temas de djay",
@@ -426,6 +430,8 @@ const I18N = {
     "fold.count": "{n} temas encontrados",
     "fold.prompt": "Ruta de la carpeta (ej. /Volumes/USB/Musica)",
     "fold.added": "Carpeta añadida: leyendo los archivos…",
+    "set.musicRetry": "REINTENTAR BIBLIOTECA MÚSICA",
+    "set.musicRetrying": "Leyendo la biblioteca de Música… (macOS puede pedir permiso para Música)",
   },
 };
 

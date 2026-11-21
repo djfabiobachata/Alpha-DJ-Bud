@@ -197,7 +197,7 @@ class AppState:
         try:
             data = music_library.load()
             self.music = {"ok": True, "error": None, "tracks": len(data["tracks"]),
-                          "playlists": len(data["playlists"])}
+                          "playlists": len(data["playlists"]), "method": data.get("method")}
             if self.library:
                 with self.lock:
                     self.library.set_apple_music(data)
@@ -452,6 +452,8 @@ class AppState:
                 if not folders and self.library:
                     self.library.set_local_files(None)
                 self._files_wake.set()
+            elif name == "music-retry":
+                threading.Thread(target=self.load_music, daemon=True).start()
             elif name == "newset":
                 self.new_set()
             elif name == "endset":

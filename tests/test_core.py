@@ -526,3 +526,28 @@ class V19Test(unittest.TestCase):
         self.assertEqual(len(st.library.tracks_in(tree[0]["id"])), 2)
         st.action("folders", {"remove": music})
         self.assertFalse([n for n in st.library.tree() if n["group"] == "files"])
+
+
+class MusicAppFallbackTest(unittest.TestCase):
+    def test_music_app_reply_is_parsed(self):
+        import json
+        import subprocess
+        from unittest import mock
+        from alpha_dj_bud import music_library as ml
+        reply = {"tracks": [["D11A7E8C3F2B0001", "Es Evidente", "Akai Rojas", 126, "12A - Energy 6", 249.0,
+                             "Bachata", "/Users/x/Music/Es Evidente.m4a"],
+                            ["D11A7E8C3F2B0002", "Podcast-ish", "", 0, "", 10.0, "", None]],
+                 "playlists": [["00000000000000AA", None, "DJ", "folder", []],
+                               ["00000000000000AB", "00000000000000AA", "BCHTA", "none",
+                                ["D11A7E8C3F2B0001", "D11A7E8C3F2B0002"]],
+                               ["00000000000000AC", None, "Podcasts", "Podcasts", []]]}
+        done = subprocess.CompletedProcess([], 0, stdout=json.dumps(reply), stderr="")
+        with mock.patch("subprocess.run", return_value=done):
+            data = ml._load_via_music_app()
+        pid = int("D11A7E8C3F2B0001", 16)
+        self.assertEqual(data["tracks"][pid]["path"], "/Users/x/Music/Es Evidente.m4a")
+        names = {p["name"]: p for p in data["playlists"]}
+        self.assertTrue(names["DJ"]["folder"])
+        self.assertEqual(names["BCHTA"]["parent"], int("AA", 16))
+        self.assertNotIn("Podcasts", names)          # special list with no songs
+        self.assertEqual(len(names["BCHTA"]["items"]), 2)

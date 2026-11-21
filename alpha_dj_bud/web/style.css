@@ -254,3 +254,5 @@ select:focus, .search:focus, .opt input:focus { border-color: var(--purple); }
 .folder span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .folder .rm { width: auto; padding: 3px 7px; }
 @media (max-width: 560px) { .bpmtag { font-size: 9px; padding: 0 4px; } }
+
+#btnMusicRetry[hidden] { display: none; }
