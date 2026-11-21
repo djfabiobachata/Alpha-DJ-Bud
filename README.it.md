@@ -8,11 +8,19 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 
 ## Cosa fa
 
-1. **Si collega a djay Pro da solo.** Legge (solo in lettura, senza modificare nulla) la libreria di djay: `~/Music/djay/djay Media Library.djayMediaLibrary/MediaLibrary.db`. Quando djay registra un brano come suonato nella sua cronologia, Bud se ne accorge in circa 1–2 secondi. Se serve, puoi impostare a mano il brano in riproduzione con la ricerca a destra.
+1. **Si collega a djay Pro da solo.** Legge (solo in lettura, senza modificare nulla) la libreria di djay: `~/Music/djay/djay Media Library.djayMediaLibrary/MediaLibrary.db`.
+   - **Il brano in riproduzione** arriva da `NowPlaying.txt`, il file che djay stesso aggiorna con il brano in onda, quindi cambia in circa 1–2 secondi. Se quel file non c'è, Bud usa la cronologia di djay. Se serve, puoi impostare a mano il brano in riproduzione con la ricerca a destra.
+   - Se djay suona un brano che non è in nessuna libreria leggibile da Bud (per esempio in streaming), in alto compare un avviso con il titolo.
 2. **Si imposta prima della serata:**
    - **Serata**: Bachata, Salsa, Zouk oppure mista (Bachata + Salsa).
    - **Ora suono**: il genere che stai suonando in quel momento.
-   - **Cartella/Playlist**: una cartella o playlist per ogni genere, dalle playlist di djay **o dall'app Musica** (la sorgente "Musica" di djay, elencata sotto "Apple Music (app Musica)"). Il menu è diviso in due gruppi, **djay** e **Apple Music**, e offre anche "Tutti i brani di djay", "Tutta la libreria Musica" e liste speciali come "Acquisti" (le cartelle includono tutte le playlist che contengono). Bud ricorda la scelta per ogni genere.
+   - **Cartella/Playlist**: una cartella o playlist per ogni genere. Il menu è diviso in tre gruppi, come le sorgenti di djay:
+     - **djay**: "Tutti i brani di djay" e le playlist e cartelle di djay;
+     - **Apple Music (app Musica)**: "Tutta la libreria Musica", liste speciali come "Acquisti" e le tue playlist e cartelle dell'app Musica (la sorgente "Musica" di djay);
+     - **Cartelle sul Mac**: le cartelle che aggiungi nelle Impostazioni (la sorgente Finder / I miei file di djay, le chiavette USB).
+
+     Le cartelle includono tutte le playlist che contengono. Bud ricorda la scelta per ogni genere.
+   - I pulsanti **BACHATA / SALSA / ZOUK** sono sempre cliccabili (anche nel MINI): se scegli un genere fuori dalla serata impostata, cambia anche la serata.
 3. **Consiglia i prossimi brani** della cartella scelta, con queste regole:
    - **Key (Camelot Wheel)**. Esempio con 3A in riproduzione: **3A, 3B, 2A, 4A** e **9A, 9B** (salto di 6). Vale allo stesso modo per le key B.
    - **BPM**: entro una tolleranza **impostata per ogni genere** in ⚙ Impostazioni (di base Bachata ±4, Salsa ±6, Zouk ±10).
@@ -111,10 +119,11 @@ Bud Brain è la parte dell'app che **impara i tuoi gusti**. Tutto resta sul tuo 
 
 **Come viene calcolato un consiglio**
 
-1. **Prima le regole fisse** (mai infrante): key Camelot compatibile, BPM entro ±4, nessun artista degli ultimi N brani, non già suonato nel set.
+1. **Prima le regole fisse** (mai infrante): key Camelot compatibile, BPM entro la tolleranza del genere (di base Bachata ±4, Salsa ±6, Zouk ±10), nessun artista degli ultimi N brani, non già suonato nel set.
 2. **Punteggio base**: quanto è buona la relazione di key (stessa key la migliore, poi relativa / ±1, poi +6) e quanto sono vicini i BPM.
 3. **Punteggio imparato**: la tabella qui sopra, mescolata al punteggio base. Il suo peso cresce con la **Fiducia**.
 4. **Varietà**: una piccola rotazione da una serata all'altra, stabile durante lo stesso set.
+5. **Ordine**: prima i 3 consigli migliori, poi il brano migliore per salire (4°) e per scendere (5°) di BPM, poi gli altri.
 
 **Le due manopole**
 
@@ -128,7 +137,8 @@ Bud Brain è la parte dell'app che **impara i tuoi gusti**. Tutto resta sul tuo 
 | Azione | Come |
 |---|---|
 | Caricare in djay | Trascina un consiglio su un deck di djay |
-| Brano in riproduzione | Automatico dalla cronologia di djay (con il deck). Se serve, impostalo con la ricerca in "Imposta a mano il brano in riproduzione" |
+| Brano in riproduzione | Automatico da djay (NowPlaying.txt o la sua cronologia). Se serve, impostalo con la ricerca in "Imposta a mano il brano in riproduzione" |
+| Cambiare genere | Clic su **BACHATA / SALSA / ZOUK** (anche nel MINI) |
 | Mi piace / non proporre | **♥** / **✕** sulla riga del consiglio |
 | Fine serata | **FINE SET**: salva ciò che Bud ha imparato |
 | Nuovo set | **NUOVO SET**: azzera brani suonati ed esclusi |
@@ -136,12 +146,18 @@ Bud Brain è la parte dell'app che **impara i tuoi gusti**. Tutto resta sul tuo 
 
 Nella **serata mista**, se metti un brano che sta nella cartella di un altro genere, Bud cambia genere da solo.
 
-**Key e BPM** sono quelli analizzati da djay. Se un brano non è ancora analizzato, Bud prova a leggere il BPM dal titolo (es. "… 94 Bpm"). I brani senza key o senza BPM vengono contati tra gli esclusi in fondo alla lista. Se usi Mixed In Key, puoi attivare la lettura della key Camelot scritta nei commenti.
+**Key e BPM**: prima quelli analizzati da djay; altrimenti i tag del file (BPM / key iniziale), la key Camelot e il BPM scritti nei commenti o nel nome del file (es. "12A - 126 - Titolo", "12A - Energy 6"), oppure il BPM nel titolo (es. "… 94 Bpm"). I brani senza key o senza BPM vengono contati tra gli esclusi in fondo alla lista. Se usi Mixed In Key, puoi far preferire a Bud la key Camelot scritta nei commenti.
 
 ## Dati
 
-- Impostazioni e memoria di Bud: `~/Library/Application Support/Alpha DJ Bud/` (`settings.json`, `brain.json`). Per ripartire da zero basta cancellare `brain.json`.
-- La libreria di djay non viene mai modificata.
+- Tutto si trova in `~/Library/Application Support/Alpha DJ Bud/`:
+  - `settings.json`: impostazioni, playlist per genere, posizioni delle finestre;
+  - `brain.json`: ciò che Bud ha imparato (cancellalo per ripartire da zero);
+  - `files-cache.json`: tag letti dalle cartelle sul Mac;
+  - `drag-method.json`: il metodo di trascinamento che djay accetta;
+  - `alpha-dj-bud.log`: registro per l'assistenza;
+  - `app` / `venv`: l'app installata (e `app.old`, la versione precedente).
+- La libreria di djay, la libreria Musica e i tuoi file non vengono mai modificati.
 
 ## Struttura del codice
 
@@ -159,7 +175,9 @@ alpha_dj_bud/
   local_files.py   cartelle sul Mac (tag letti con mutagen)
   native_drag.py   trascinamento del file dalla finestra a djay (3 metodi, ricorda quello che djay accetta)
   app.py           avvio e finestra (pywebview / browser)
-  web/             interfaccia (HTML/CSS/JS)
+  web/             interfaccia (HTML/CSS/JS, traduzioni in i18n.js)
+assets/            icona dell'app
+tools/make_icon.py disegna l'icona
 tests/             test con una libreria djay finta
 ```
 
@@ -169,7 +187,7 @@ Test: `python3 -m unittest discover -s tests -t .`
 
 - Solo **djay Pro per macOS** (su Windows djay non espone i dati allo stesso modo).
 - Il formato del database di djay non è documentato. Un aggiornamento di djay potrebbe cambiarlo; in quel caso la spia **DJAY** diventa rossa.
-- Il brano in riproduzione arriva dalla cronologia di djay, quindi compare quando djay lo registra come suonato.
+- Se djay non scrive `NowPlaying.txt`, il brano in riproduzione arriva dalla cronologia di djay, che djay non aggiorna per ogni brano.
 - Se un trascinamento non parte, l'app mostra un messaggio con il motivo: mandalo all'assistenza. I dettagli sono anche in `~/Library/Application Support/Alpha DJ Bud/alpha-dj-bud.log` (righe che iniziano con `[drag]`).
 - Le playlist di **Spotify, TIDAL, SoundCloud, Beatport e Apple Music in streaming** non si possono leggere: djay non le salva sul Mac e quei brani non hanno un file. I brani che djay ha già analizzato compaiono comunque in "Tutti i brani di djay".
 - Il trascinamento funziona solo per i brani con un file locale, e il disco che lo contiene deve essere collegato. Il trascinamento completo verso djay richiede la finestra nativa (app installata); nel browser dipende dal browser.

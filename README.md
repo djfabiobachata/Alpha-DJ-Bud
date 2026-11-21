@@ -10,11 +10,19 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
 
 ## What it does
 
-1. **Connects to djay Pro automatically.** It reads djay's library (read-only, it never changes anything): `~/Music/djay/djay Media Library.djayMediaLibrary/MediaLibrary.db`. When djay logs a track as played in its history, Bud picks it up in about 1–2 seconds. If needed, you can set the playing track manually with the search on the right.
+1. **Connects to djay Pro automatically.** It reads djay's library (read-only, it never changes anything): `~/Music/djay/djay Media Library.djayMediaLibrary/MediaLibrary.db`.
+   - **Now playing** comes from `NowPlaying.txt`, the file djay itself updates with the track on air, so it changes in about 1–2 seconds. If that file isn't there, Bud uses djay's history. If needed, you can set the playing track manually with the search on the right.
+   - If djay plays a track that isn't in any library Bud can read (e.g. streaming), a warning with its title appears at the top.
 2. **You set it up before the night:**
    - **Event**: Bachata, Salsa, Zouk, or a mixed night (Bachata + Salsa).
    - **Now playing**: the genre you are playing right now.
-   - **Folder / Playlist**: one folder or playlist per genre — from djay's own playlists **or from the Music app** (the "Music" source in djay, listed under "Apple Music (Music app)"). The menu is split into two groups, **djay** and **Apple Music**, and also offers "All djay tracks", "Whole Music library" and special lists like "Purchased". Folders include every playlist inside them. Bud remembers the choice for each genre.
+   - **Folder / Playlist**: one folder or playlist per genre. The menu is split into three groups, like djay's sources:
+     - **djay**: "All djay tracks" and djay's own playlists and folders;
+     - **Apple Music (Music app)**: "Whole Music library", special lists like "Purchased" and your Music playlists and folders (djay's "Music" source);
+     - **Folders on the Mac**: the folders you add in Settings (djay's Finder / My files source, USB drives).
+
+     Folders include every playlist inside them. Bud remembers the choice for each genre.
+   - The **BACHATA / SALSA / ZOUK** buttons are always clickable (also in MINI): picking a genre outside the current night switches the night too.
 3. **Suggests the next tracks** from the chosen folder, with these rules:
    - **Key (Camelot Wheel)**. Example with 3A playing: **3A, 3B, 2A, 4A** and **9A, 9B** (6-step jump). The same rules apply to B keys.
    - **BPM**: within a tolerance **set per genre** in ⚙ Settings (default Bachata ±4, Salsa ±6, Zouk ±10).
@@ -112,10 +120,11 @@ Bud Brain is the part of the app that **learns your taste**. Everything stays on
 
 **How a suggestion is scored**
 
-1. **Hard rules first** (never broken): compatible Camelot key, BPM within ±4, no artist from the last N tracks, not already played in the set.
+1. **Hard rules first** (never broken): compatible Camelot key, BPM within the genre's tolerance (default Bachata ±4, Salsa ±6, Zouk ±10), no artist from the last N tracks, not already played in the set.
 2. **Base score**: how good the key relation is (same key best, then relative / ±1, then +6) and how close the BPM is.
 3. **Learned score**: the table above, blended with the base score. Its weight grows with **Confidence**.
 4. **Variety**: a small night-to-night rotation, stable within the same set.
+5. **Order**: the 3 best suggestions first, then the best track to go up (4th) and to go down (5th) in BPM, then the rest.
 
 **The two dials**
 
@@ -129,7 +138,8 @@ Bud Brain is the part of the app that **learns your taste**. Everything stays on
 | Action | How |
 |---|---|
 | Load into djay | Drag a suggestion onto a djay deck |
-| Playing track | Automatic from djay's history (deck shown). If needed, set it with the search in "Set now playing manually" |
+| Playing track | Automatic from djay (NowPlaying.txt, or its history). If needed, set it with the search in "Set now playing manually" |
+| Change genre | Click **BACHATA / SALSA / ZOUK** (also in MINI) |
 | Like / don't suggest | **♥** / **✕** on the suggestion row |
 | End of the night | **END SET**: saves what Bud has learned |
 | New set | **NEW SET**: resets played and hidden tracks |
@@ -137,12 +147,18 @@ Bud Brain is the part of the app that **learns your taste**. Everything stays on
 
 On a **mixed night**, if you play a track that sits in another genre's folder, Bud switches genre on its own.
 
-**Key and BPM** are the ones analysed by djay. If a track hasn't been analysed yet, Bud tries to read the BPM from the title (e.g. "… 94 Bpm"). Tracks without key or BPM are counted among the excluded ones at the bottom of the list. If you use Mixed In Key, you can have Bud read the Camelot key written in the comments.
+**Key and BPM**: first the values analysed by djay; otherwise the file tags (BPM / initial key), the Camelot key and BPM written in comments or file names (e.g. "12A - 126 - Title", "12A - Energy 6"), or the BPM in the title (e.g. "… 94 Bpm"). Tracks without key or BPM are counted among the excluded ones at the bottom of the list. If you use Mixed In Key, you can have Bud prefer the Camelot key written in the comments.
 
 ## Data
 
-- Settings and Bud's memory live in `~/Library/Application Support/Alpha DJ Bud/` (`settings.json`, `brain.json`). To start from scratch, delete `brain.json`.
-- The djay library is never modified.
+- Everything lives in `~/Library/Application Support/Alpha DJ Bud/`:
+  - `settings.json`: your settings, playlists per genre, window positions;
+  - `brain.json`: what Bud has learned (delete it to start from scratch);
+  - `files-cache.json`: tags read from the folders on the Mac;
+  - `drag-method.json`: the drag method djay accepts;
+  - `alpha-dj-bud.log`: log for troubleshooting;
+  - `app` / `venv`: the installed app (and `app.old`, the previous version).
+- The djay library, the Music library and your files are never modified.
 
 ## Code structure
 
@@ -174,7 +190,7 @@ To add a language, copy the `en` block in `alpha_dj_bud/web/i18n.js`, translate 
 
 - **djay Pro for macOS** only (on Windows djay doesn't expose its data the same way).
 - djay's database format is undocumented. A djay update could change it; in that case the **DJAY** light turns red.
-- The playing track comes from djay's history, so it appears when djay logs it as played.
+- If djay doesn't write `NowPlaying.txt`, the playing track comes from djay's history, which djay doesn't update for every track.
 - If a drag doesn't start, the app shows a message with the reason: send it to support. Details are also in `~/Library/Application Support/Alpha DJ Bud/alpha-dj-bud.log` (lines starting with `[drag]`).
 - **Spotify, TIDAL, SoundCloud, Beatport and Apple Music streaming** playlists can't be read: djay doesn't save them on the Mac and those tracks have no file. Tracks djay has already analysed still appear in "All djay tracks".
 - Drag works only for tracks with a local file, and the drive holding it must be connected. The full drag to djay needs the native window (installed app); in the browser it depends on the browser.
