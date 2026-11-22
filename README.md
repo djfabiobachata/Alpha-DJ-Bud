@@ -13,6 +13,7 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
 1. **Connects to djay Pro automatically.** It reads djay's library (read-only, it never changes anything): `~/Music/djay/djay Media Library.djayMediaLibrary/MediaLibrary.db`.
    - **Now playing** comes from `NowPlaying.txt`, the file djay itself updates with the track on air, so it changes in about 1–2 seconds. If that file isn't there, Bud uses djay's history. If needed, you can set the playing track manually with the search on the right.
    - If djay plays a track that isn't in any library Bud can read (e.g. streaming), a warning with its title appears at the top.
+   - **Live BPM**: if you change the tempo in djay (tempo fader, SYNC, pitch), Bud reads the BPM djay shows for that deck and calculates the suggestions from the tempo you're actually playing at. The BPM box gets a green dot and shows the original BPM below ("orig. 118.0"). Needs the **Accessibility** permission (System Settings → Privacy & Security → Accessibility); without it Bud uses the analysed BPM. Can be turned off in ⚙ Settings.
 2. **You set it up before the night:**
    - **Event**: Bachata, Salsa, Zouk, or a mixed night (Bachata + Salsa).
    - **Now playing**: the genre you are playing right now.
@@ -174,6 +175,7 @@ alpha_dj_bud/
   updater.py       in-app updates from GitHub releases
   music_library.py Music app library (iTunesLibrary framework)
   local_files.py   folders on the Mac (tags via mutagen)
+  deck_reader.py   reads the live BPM of the playing deck from djay's window (Accessibility)
   native_drag.py   macOS file drag from the window onto djay (3 methods, the one djay accepts is remembered)
   app.py           launch and window (pywebview / browser)
   web/             interface (HTML/CSS/JS, translations in i18n.js)

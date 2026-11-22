@@ -11,6 +11,7 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 1. **Si collega a djay Pro da solo.** Legge (solo in lettura, senza modificare nulla) la libreria di djay: `~/Music/djay/djay Media Library.djayMediaLibrary/MediaLibrary.db`.
    - **Il brano in riproduzione** arriva da `NowPlaying.txt`, il file che djay stesso aggiorna con il brano in onda, quindi cambia in circa 1–2 secondi. Se quel file non c'è, Bud usa la cronologia di djay. Se serve, puoi impostare a mano il brano in riproduzione con la ricerca a destra.
    - Se djay suona un brano che non è in nessuna libreria leggibile da Bud (per esempio in streaming), in alto compare un avviso con il titolo.
+   - **BPM dal vivo**: se cambi il tempo in djay (fader del tempo, SYNC, pitch), Bud legge il BPM che djay mostra per quel deck e calcola i consigli sul tempo a cui stai davvero suonando. Il riquadro BPM ha un pallino verde e sotto mostra il BPM originale ("orig. 118.0"). Serve il permesso di **Accessibilità** (Impostazioni di Sistema → Privacy e sicurezza → Accessibilità); senza, Bud usa il BPM analizzato. Si può disattivare in ⚙ Impostazioni.
 2. **Si imposta prima della serata:**
    - **Serata**: Bachata, Salsa, Zouk oppure mista (Bachata + Salsa).
    - **Ora suono**: il genere che stai suonando in quel momento.
@@ -173,6 +174,7 @@ alpha_dj_bud/
   updater.py       aggiornamenti dall'app tramite le release di GitHub
   music_library.py libreria dell'app Musica (framework iTunesLibrary)
   local_files.py   cartelle sul Mac (tag letti con mutagen)
+  deck_reader.py   legge il BPM dal vivo del deck in riproduzione dalla finestra di djay (Accessibilità)
   native_drag.py   trascinamento del file dalla finestra a djay (3 metodi, ricorda quello che djay accetta)
   app.py           avvio e finestra (pywebview / browser)
   web/             interfaccia (HTML/CSS/JS, traduzioni in i18n.js)

@@ -562,3 +562,32 @@ class MusicAppFallbackTest(unittest.TestCase):
         self.assertEqual(names["BCHTA"]["parent"], int("AA", 16))
         self.assertNotIn("Podcasts", names)          # special list with no songs
         self.assertEqual(len(names["BCHTA"]["items"]), 2)
+
+
+class LiveBpmTest(unittest.TestCase):
+    def test_pick_deck_by_title(self):
+        from alpha_dj_bud.deck_reader import pick_deck_bpm, parse_bpm
+        decks = [{"texts": ["Crazy", "DJ Nico & Mayinbito"], "bpms": [124.5], "pitch": -1.2},
+                 {"texts": ["Es Evidente", "Akai Rojas"], "bpms": [126.0], "pitch": 0.0}]
+        self.assertEqual(pick_deck_bpm(decks, "Es Evidente"), (1, 126.0))
+        self.assertEqual(pick_deck_bpm(decks, "Crazy"), (0, 124.5))
+        self.assertEqual(pick_deck_bpm(decks, "Other"), (None, None))
+        self.assertEqual((parse_bpm("126.0"), parse_bpm("--"), parse_bpm("0.0 %")), (126.0, None, None))
+
+    def test_suggestions_follow_the_tempo_set_in_djay(self):
+        tmp = tempfile.mkdtemp()
+        os.environ["ALPHA_DJ_BUD_HOME"] = os.path.join(tmp, "home")
+        from alpha_dj_bud.server import AppState
+        st = AppState(fixture.build(os.path.join(tmp, "MediaLibrary.db")))
+        st.action("playlist", {"id": "F-BACHATA"})
+        st.action("current", {"id": "t01"})            # analysed at 128
+        before = {x["id"]: x["bpmDelta"] for x in st.snapshot()["suggestions"]}
+        st.live = {"bpm": 131.0, "deck": 0, "track": "t01"}   # DJ pushed the tempo to 131
+        snap = st.snapshot()
+        self.assertEqual((snap["current"]["bpm"], snap["current"]["bpmAnalyzed"]), (131.0, 128.0))
+        self.assertTrue(snap["current"]["bpmLive"])
+        after = {x["id"]: x["bpmDelta"] for x in snap["suggestions"]}
+        self.assertEqual(after["t12"], 1.0)              # 132 vs 131 (was +4 vs 128)
+        self.assertNotEqual(before.get("t05"), after.get("t05"))
+        st.action("options", {"liveBpm": False})        # option off: back to analysed BPM
+        self.assertEqual(st.snapshot()["current"]["bpm"], 128.0)

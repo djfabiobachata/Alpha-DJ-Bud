@@ -33,6 +33,15 @@ def app_home():
     return os.path.expanduser("~/.alpha-dj-bud")
 
 
+def with_bpm(track, bpm):
+    """Copy of `track` playing at `bpm` (the tempo set in djay)."""
+    from .djay_library import Track
+    t = Track(track.id, track.title, track.artist, bpm, track.key, track.duration,
+              track.comments, track.genre, track.key_source)
+    t.djay_title, t.djay_artist = track.djay_title, track.djay_artist
+    return t
+
+
 class AppState:
     def __init__(self, db_path=None):
         self.home = app_home()
@@ -47,6 +56,7 @@ class AppState:
             "keyFromComments": False,
             "autoGenre": True,
             "autoUpdateCheck": True,
+            "liveBpm": True,        # follow the BPM set in djay (tempo / sync)
             "dbPath": db_path,
             "compact": False,
             "language": "en",
@@ -68,6 +78,9 @@ class AppState:
         self.files = {"ok": False, "tracks": 0, "scanning": False}
         self._files_wake = threading.Event()
         threading.Thread(target=self.files_loop, daemon=True).start()
+        self.live = {"bpm": None, "deck": None, "track": None}
+        self.live_status = {"ok": False, "error": None}
+        threading.Thread(target=self.live_bpm_loop, daemon=True).start()
 
     # -- settings ----------------------------------------------------------
     def _load_settings(self):
@@ -143,6 +156,7 @@ class AppState:
             if learn:
                 self.brain.observe(self.settings["genre"], prev, new, self.shown, set_id=self.set_id)
             self.current_id = track_id
+            self.live = {"bpm": None, "deck": None, "track": None}
             self.current_source = source
             self.played.append(track_id)
             self.version += 1
@@ -214,6 +228,43 @@ class AppState:
                 if str(self.music.get("error") or "").startswith("notMac"):
                     return
             time.sleep(every if self.music.get("ok") else 60)
+
+    # -- live BPM from djay's decks ---------------------------------------------
+    def live_bpm_loop(self, interval=1.0):
+        from .deck_reader import DeckReader, DeckReaderError
+        reader = DeckReader()
+        prompted = False
+        while True:
+            try:
+                tid = self.current_id
+                track = self.library.get(tid) if (self.library and tid) else None
+                if not self.settings.get("liveBpm", True) or track is None:
+                    time.sleep(2)
+                    continue
+                deck, bpm = reader.live_bpm(track.djay_title)
+                self.live_status = {"ok": True, "error": None}
+                if bpm and track.bpm and not (0.5 * track.bpm <= bpm <= 2.0 * track.bpm):
+                    bpm = None  # not plausible for this track: ignore
+                old = self.live.get("bpm") if self.live.get("track") == tid else None
+                changed = (old is None) != (bpm is None) or bool(bpm and old and abs(bpm - old) >= 0.05)
+                if tid == self.current_id and changed:
+                    self.live = {"bpm": bpm, "deck": deck, "track": tid}
+                    if deck is not None:
+                        self.current_deck = deck
+                    self.version += 1
+                time.sleep(interval)
+            except DeckReaderError as e:
+                self.live_status = {"ok": False, "error": e.code}
+                if e.code == "noPermission" and not prompted:
+                    prompted = True
+                    try:
+                        reader.permission(prompt=True)
+                    except Exception:
+                        pass
+                time.sleep(60 if e.code in ("notMac", "noPyobjc") else 4)
+            except Exception as e:
+                self.live_status = {"ok": False, "error": "failed", "detail": str(e)}
+                time.sleep(4)
 
     # -- folders on the Mac -------------------------------------------------------
     def scan_folders(self):
@@ -320,6 +371,11 @@ class AppState:
             lib = self.library
             genre = self.settings["genre"]
             current = lib.get(self.current_id) if (lib and self.current_id) else None
+            live = self.live if (current and self.live.get("track") == current.id
+                                 and self.settings.get("liveBpm", True)) else {}
+            analyzed_bpm = current.bpm if current else None
+            if live.get("bpm") and current:
+                current = with_bpm(current, live["bpm"])
             pool = self.pool()
             suggestions, stats = ([], {})
             if lib and current:
@@ -333,6 +389,9 @@ class AppState:
                 item["fileUrl"] = ("file://" + quote(fp)) if fp else None
             played = [lib.get(t).to_dict() for t in self.played[-12:] if lib and lib.get(t)]
             cur = current.to_dict() if current else None
+            if cur:
+                cur["bpmAnalyzed"] = round(analyzed_bpm, 1) if analyzed_bpm else None
+                cur["bpmLive"] = bool(live.get("bpm"))
             if cur:
                 cur["source"] = self.current_source
                 cur["deck"] = self.current_deck if self.current_source == "djay" else None
@@ -363,6 +422,8 @@ class AppState:
                 "update": self.update,
                 "nowPlayingFile": self.np_source,
                 "music": self.music,
+                "liveBpm": self.settings.get("liveBpm", True),
+                "liveStatus": self.live_status,
                 "files": self.files,
                 "folders": self.settings.get("folders") or [],
                 "nowPlayingUnmatched": self.np_unmatched,
@@ -428,7 +489,7 @@ class AppState:
                         s["options"][k] = v
                 if body.get("language") in LANGUAGES:
                     s["language"] = body["language"]
-                for k in ("keyFromComments", "autoGenre", "autoUpdateCheck"):
+                for k in ("keyFromComments", "autoGenre", "autoUpdateCheck", "liveBpm"):
                     if k in body:
                         s[k] = bool(body[k])
                 if "keyFromComments" in body and self.library:

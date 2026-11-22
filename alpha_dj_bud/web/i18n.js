@@ -144,6 +144,15 @@ const I18N = {
     "fold.added": "Folder added: reading the files…",
     "set.musicRetry": "RETRY MUSIC LIBRARY",
     "set.musicRetrying": "Reading the Music library… (macOS may ask to allow access to Music)",
+    "set.liveBpm": "Follow the BPM set in djay (tempo fader / SYNC): suggestions use the tempo you are actually playing at",
+    "live.orig": "orig. {orig}",
+    "live.title": "BPM read from djay (original {orig})",
+    "live.ok": "Reading the BPM from djay's decks",
+    "live.err.noPermission": "To read the BPM from djay, allow Alpha DJ Bud in System Settings → Privacy & Security → Accessibility, then reopen the app",
+    "live.err.notRunning": "djay Pro is not open",
+    "live.err.notMac": "Works only on Mac",
+    "live.err.noPyobjc": "Missing component: run the update again",
+    "live.err.failed": "Can't read the BPM from djay: using the analysed BPM",
   },
 
   it: {
@@ -288,6 +297,15 @@ const I18N = {
     "fold.added": "Cartella aggiunta: lettura dei file…",
     "set.musicRetry": "RIPROVA LIBRERIA MUSICA",
     "set.musicRetrying": "Lettura della libreria Musica… (macOS potrebbe chiedere il permesso per Musica)",
+    "set.liveBpm": "Segui il BPM impostato in djay (fader del tempo / SYNC): i consigli usano il tempo a cui stai davvero suonando",
+    "live.orig": "orig. {orig}",
+    "live.title": "BPM letto da djay (originale {orig})",
+    "live.ok": "Legge il BPM dai deck di djay",
+    "live.err.noPermission": "Per leggere il BPM da djay, consenti Alpha DJ Bud in Impostazioni di Sistema → Privacy e sicurezza → Accessibilità, poi riapri l'app",
+    "live.err.notRunning": "djay Pro non è aperto",
+    "live.err.notMac": "Funziona solo su Mac",
+    "live.err.noPyobjc": "Componente mancante: rifai l'aggiornamento",
+    "live.err.failed": "Impossibile leggere il BPM da djay: uso il BPM analizzato",
   },
 
   es: {
@@ -432,6 +450,15 @@ const I18N = {
     "fold.added": "Carpeta añadida: leyendo los archivos…",
     "set.musicRetry": "REINTENTAR BIBLIOTECA MÚSICA",
     "set.musicRetrying": "Leyendo la biblioteca de Música… (macOS puede pedir permiso para Música)",
+    "set.liveBpm": "Seguir el BPM ajustado en djay (fader de tempo / SYNC): las sugerencias usan el tempo al que realmente estás pinchando",
+    "live.orig": "orig. {orig}",
+    "live.title": "BPM leído de djay (original {orig})",
+    "live.ok": "Leyendo el BPM de los decks de djay",
+    "live.err.noPermission": "Para leer el BPM de djay, permite Alpha DJ Bud en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad y vuelve a abrir la app",
+    "live.err.notRunning": "djay Pro no está abierto",
+    "live.err.notMac": "Solo funciona en Mac",
+    "live.err.noPyobjc": "Falta un componente: vuelve a actualizar",
+    "live.err.failed": "No se puede leer el BPM de djay: uso el BPM analizado",
   },
 };
 

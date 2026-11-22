@@ -103,7 +103,12 @@ function render(s) {
   $("nowKey").style.color = c && c.key ? keyColor(c.key) : "";
   $("nowMusical").textContent = c && c.musicalKey ? c.musicalKey : "";
   $("nowBpm").textContent = c && c.bpm ? c.bpm.toFixed(1) : "---";
-  $("nowDeck").textContent = c && c.deck != null ? t("now.deck") + " " + (c.deck + 1) : "";
+  $("nowBpm").classList.toggle("live", !!(c && c.bpmLive));
+  $("nowBpm").title = c && c.bpmLive ? t("live.title", { orig: (c.bpmAnalyzed || 0).toFixed(1) }) : "";
+  const deckTxt = c && c.deck != null ? t("now.deck") + " " + (c.deck + 1) : "";
+  const origTxt = c && c.bpmLive && c.bpmAnalyzed && Math.abs(c.bpmAnalyzed - c.bpm) >= 0.05
+    ? t("live.orig", { orig: c.bpmAnalyzed.toFixed(1) }) : "";
+  $("nowDeck").textContent = [deckTxt, origTxt].filter(Boolean).join(" · ");
   $("nowSource").textContent = c ? (c.source === "djay" ? t("now.fromDjay") : t("now.manual")) + (c.inPool ? "" : t("now.outside")) : "";
   drawWheel(c && c.key);
 
@@ -370,6 +375,9 @@ $("btnSettings").onclick = () => {
   $("optVariety").value = String(o.variety ?? 50);
   $("optTritone").checked = o.includeTritone; $("optHalf").checked = o.halfDouble; $("optReplays").checked = o.avoidReplays;
   $("optComments").checked = S.keyFromComments; $("optAutoGenre").checked = S.autoGenre;
+  $("optLiveBpm").checked = S.liveBpm !== false;
+  const ls = S.liveStatus || {};
+  $("liveInfo").textContent = S.liveBpm === false ? "" : ls.ok ? t("live.ok") : ls.error ? t("live.err." + ls.error) : "";
   $("optDb").value = "";
   $("dbInfo").textContent = (S.db.path ? t("set.inUse", { path: S.db.path, n: S.db.tracks }) : t("set.noDb")) +
     "\n" + (S.music && S.music.ok ? t("set.music", { n: S.music.tracks })
@@ -391,6 +399,7 @@ $("btnSaveSettings").onclick = () => {
       variety: parseInt($("optVariety").value, 10),
     },
     keyFromComments: $("optComments").checked, autoGenre: $("optAutoGenre").checked,
+    liveBpm: $("optLiveBpm").checked,
     autoUpdateCheck: $("optAutoUpdate").checked,
   };
   if ($("optDb").value.trim()) body.dbPath = $("optDb").value.trim();
