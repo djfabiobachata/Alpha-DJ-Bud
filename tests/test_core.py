@@ -472,13 +472,14 @@ class V19Test(unittest.TestCase):
                                          "bachata", {"variety": 0, "limit": 50})
         self.assertEqual([x["id"] for x in out[:3]], [x["id"] for x in plain[:3]])  # 3 best untouched
         self.assertFalse(any(x.get("bpmTag") for x in out[:3]))
-        tagged = [x.get("bpmTag") for x in out[3:5] if x.get("bpmTag")]
-        self.assertTrue(tagged)                       # up and/or down at positions 4-5
-        for x in out[3:5]:
-            if x.get("bpmTag") == "up":
-                self.assertGreater(x["bpmDelta"], 0)
-            if x.get("bpmTag") == "down":
-                self.assertLess(x["bpmDelta"], 0)
+        for x in out:
+            if x.get("bpmTag"):
+                self.assertIn(x, out[3:5])                     # only at positions 4-5
+                self.assertGreaterEqual(abs(x["bpmDelta"]), 4)  # at least 4 BPM
+        # a track 4 BPM away outside the top 3 gets the label
+        out2, _ = recommender.recommend(lib, lib.get("t01"), lib.tracks_in("F-BACHATA"), [], None,
+                                        "salsa", {"variety": 0})
+        self.assertTrue(all(abs(x["bpmDelta"]) >= 4 for x in out2 if x.get("bpmTag")))
 
     def test_genre_buttons_switch_the_night(self):
         st, _ = self._state()

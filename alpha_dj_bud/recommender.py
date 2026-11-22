@@ -105,11 +105,14 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
     return out[: int(opts["limit"])], stats
 
 
+MIN_BPM_STEP = 4.0  # a "go up / go down" pick moves the BPM by at least this much
+
+
 def _bpm_picks(items, tol):
     """Keep the 3 best suggestions on top, then put the best track to go UP
     (position 4) and the best to go DOWN (position 5) in BPM, chosen among
     the others, so the list also covers the whole BPM range."""
-    step = max(1.0, 0.4 * tol)
+    step = MIN_BPM_STEP - 0.05  # at least 4 BPM up or down
     top, rest = items[:3], items[3:]
     up = next((x for x in rest if x["bpmDelta"] >= step), None)
     down = next((x for x in rest if x["bpmDelta"] <= -step), None)
