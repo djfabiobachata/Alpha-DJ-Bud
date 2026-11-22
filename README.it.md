@@ -1,4 +1,4 @@
-# Alpha DJ Bud
+# Alpha DJ Bud — by DJ Fabio
 
 🇬🇧 [English](README.md) · 🇮🇹 **Italiano**
 
