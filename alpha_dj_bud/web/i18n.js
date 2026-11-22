@@ -153,6 +153,9 @@ const I18N = {
     "live.err.notMac": "Works only on Mac",
     "live.err.noPyobjc": "Missing component: run the update again",
     "live.err.failed": "Can't read the BPM from djay: using the analysed BPM",
+    "live.info": "\"{title}\": {info} — using the analysed BPM",
+    "live.why.noTitle": "title not found in djay's window",
+    "live.why.noBpm": "title found, but no BPM next to it (show the BPM on the deck in djay)",
   },
 
   it: {
@@ -306,6 +309,9 @@ const I18N = {
     "live.err.notMac": "Funziona solo su Mac",
     "live.err.noPyobjc": "Componente mancante: rifai l'aggiornamento",
     "live.err.failed": "Impossibile leggere il BPM da djay: uso il BPM analizzato",
+    "live.info": "\"{title}\": {info} — uso il BPM analizzato",
+    "live.why.noTitle": "titolo non trovato nella finestra di djay",
+    "live.why.noBpm": "titolo trovato, ma nessun BPM vicino (mostra il BPM sul deck in djay)",
   },
 
   es: {
@@ -459,6 +465,9 @@ const I18N = {
     "live.err.notMac": "Solo funciona en Mac",
     "live.err.noPyobjc": "Falta un componente: vuelve a actualizar",
     "live.err.failed": "No se puede leer el BPM de djay: uso el BPM analizado",
+    "live.info": "\"{title}\": {info} — uso el BPM analizado",
+    "live.why.noTitle": "título no encontrado en la ventana de djay",
+    "live.why.noBpm": "título encontrado, pero sin BPM cerca (muestra el BPM en el deck de djay)",
   },
 };
 

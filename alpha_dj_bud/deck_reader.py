@@ -1,21 +1,28 @@
 """Read the BPM a track is actually playing at in djay (macOS Accessibility).
 
-djay shows, for each deck, the track title and the current BPM (the BPM
-button in the mixer, which follows the tempo fader, SYNC and pitch). We
-find the deck whose title matches the playing track and read its BPM, so
-suggestions follow the tempo you set while mixing.
+djay shows, for each loaded deck, the track title and its current BPM (it
+follows the tempo fader, SYNC and pitch). Every DJ uses a different layout,
+so nothing here depends on positions or on a particular layout:
+
+  1. collect every text and button of djay's window (except the track list);
+  2. find the element showing the playing track's title (also when djay
+     shortens it with "…");
+  3. take the BPM value closest to that title on screen. djay shows deck BPMs
+     with a decimal ("126.0"); whole numbers are only used as a last resort.
 
 Read-only: nothing in djay is touched. Needs the Accessibility permission
 for Alpha DJ Bud (System Settings > Privacy & Security > Accessibility).
 """
+import math
 import re
 import sys
 import time
 import unicodedata
 
-_NUM = re.compile(r"^\s*(\d{2,3}(?:[.,]\d{1,2})?)\s*$")
-_PCT = re.compile(r"^\s*([+-]?\d+(?:[.,]\d+)?)\s*%\s*$")
-REFIND_EVERY = 15.0
+_DEC = re.compile(r"(?<![\d.,])(\d{2,3}[.,]\d{1,2})(?![\d])")
+_INT = re.compile(r"^\s*(\d{2,3})\s*(?:bpm)?\s*$", re.I)
+REFIND_EVERY = 10.0
+SKIP_ROLES = ("AXTable", "AXOutline", "AXList", "AXBrowser")  # the library
 
 
 class DeckReaderError(Exception):
@@ -33,33 +40,68 @@ def norm(s):
     return re.sub(r"[^a-z0-9]+", " ", s).strip()
 
 
-def parse_bpm(text):
-    m = _NUM.match(str(text or ""))
-    if not m:
-        return None
-    v = float(m.group(1).replace(",", "."))
-    return v if 50 <= v <= 250 else None
+def title_matches(text, want):
+    """True if a djay text shows the title `want` (normalised)."""
+    raw = str(text or "").strip()
+    cut = raw.endswith(("…", "...")) or raw.endswith("..")
+    t = norm(raw)
+    if not t or not want:
+        return False
+    if t == want:
+        return True
+    if cut and len(t) >= 5 and want.startswith(t):
+        return True
+    return len(want) >= 4 and (t.startswith(want + " ") or t.endswith(" " + want))
 
 
-def pick_deck_bpm(decks, title):
-    """decks: [{'texts': [...], 'bpms': [...], 'pitch': ...}] -> (deck index, bpm) for
-    the deck showing `title`, or (None, None)."""
+def bpm_values(text):
+    """BPM-like numbers in a text: (value, has_decimal)."""
+    out = []
+    for m in _DEC.finditer(str(text or "")):
+        v = float(m.group(1).replace(",", "."))
+        if 50 <= v <= 250:
+            out.append((v, True))
+    if not out:
+        m = _INT.match(str(text or ""))
+        if m and 50 <= int(m.group(1)) <= 250:
+            out.append((float(m.group(1)), False))
+    return out
+
+
+def pick_bpm(items, title, expected=None):
+    """items: [{'text': str, 'frame': (x, y, w, h)}]. Returns (bpm, frame of the
+    title, info) for the playing track `title`, or (None, None, info)."""
     want = norm(title)
-    if not want:
-        return None, None
-    for i, d in enumerate(decks):
-        texts = [norm(t) for t in d["texts"]]
-        if any(t == want or (len(want) > 3 and t.startswith(want)) for t in texts):
-            bpm = next((b for b in d["bpms"] if b), None)
-            return i, bpm
-    return None, None
+    titles = [it for it in items if title_matches(it["text"], want)]
+    if not titles:
+        return None, None, "title not found"
+    best = None
+    for t in titles:
+        tx, ty, tw, th = t["frame"]
+        for it in items:
+            for v, dec in bpm_values(it["text"]):
+                if expected and not (0.5 * expected <= v <= 2.0 * expected):
+                    continue
+                x, y, w, h = it["frame"]
+                # gap between the two boxes (0 if they touch or overlap)
+                dx = max(0.0, x - (tx + tw), tx - (x + w))
+                dy = max(0.0, y - (ty + th), ty - (y + h))
+                d = math.hypot(dx, dy)
+                key = (0 if dec else 1, d)
+                if best is None or key < best[0]:
+                    best = (key, v, t["frame"])
+    if best is None:
+        return None, titles[0]["frame"], "title found, no BPM near it"
+    return best[1], best[2], "ok"
 
 
 class DeckReader:
     def __init__(self):
         self.AS = None
         self.found_at = 0.0
-        self.decks = []  # [{'texts': [els], 'bpms': [els], 'pct': [els]}] left -> right
+        self.elements = []   # [(element, attribute, frame)]
+        self.window = None
+        self.info = ""
 
     def _imports(self):
         if sys.platform != "darwin":
@@ -107,52 +149,46 @@ class DeckReader:
         if not windows:
             raise DeckReaderError("notRunning")
         win = max(windows, key=lambda w: (self._frame(w) or (0, 0, 0, 0))[2])
-        wx, wy, ww, wh = self._frame(win) or (0, 0, 1, 1)
-        cx = wx + ww / 2
-        halves = [{"texts": [], "bpms": [], "pct": []}, {"texts": [], "bpms": [], "pct": []}]
-        queue, seen = [win], 0
-        while queue and seen < 5000:
+        self.window = self._frame(win)
+        elements, queue, seen = [], [win], 0
+        while queue and seen < 8000:
             el = queue.pop(0)
             seen += 1
             role = self.get(el, "AXRole")
-            if role in ("AXStaticText", "AXButton"):
+            if role in SKIP_ROLES:
+                continue
+            if role in ("AXStaticText", "AXTextField"):
                 f = self._frame(el)
-                if f and f[1] - wy < wh * 0.6:  # decks are above the library
-                    side = halves[0 if f[0] + f[2] / 2 < cx else 1]
-                    if role == "AXStaticText":
-                        side["texts"].append((f[1], el))
-                    else:
-                        side["bpms"].append((f[1], el))
-            if role not in ("AXTable", "AXOutline"):  # skip the library list
-                queue.extend(self.get(el, "AXChildren") or [])
-        for h in halves:
-            h["texts"] = [e for _, e in sorted(h["texts"], key=lambda x: x[0])]
-            h["bpms"] = [e for _, e in sorted(h["bpms"], key=lambda x: x[0])]
-        self.decks = halves
+                if f:
+                    elements.append((el, "AXValue", f))
+            elif role in ("AXButton", "AXPopUpButton", "AXMenuButton"):
+                f = self._frame(el)
+                if f:
+                    elements.append((el, "AXTitle", f))
+                    elements.append((el, "AXDescription", f))
+            queue.extend(self.get(el, "AXChildren") or [])
+        self.elements = elements
         self.found_at = time.time()
 
-    def read(self):
-        """[{'texts': [str], 'bpms': [float], 'pitch': float|None}] for deck 1 and 2."""
-        if not self.decks or time.time() - self.found_at > REFIND_EVERY:
-            self._find()
+    def _items(self):
         out = []
-        for h in self.decks:
-            texts = [str(self.get(e, "AXValue") or "") for e in h["texts"]]
-            titles = [str(self.get(e, "AXTitle") or "") for e in h["bpms"]]
-            out.append({
-                "texts": [t for t in texts if t],
-                "bpms": [b for b in (parse_bpm(t) for t in titles) if b],
-                "pitch": next((float(m.group(1).replace(",", ".")) for m in
-                               (_PCT.match(t) for t in titles) if m), None),
-            })
+        for el, attr, f in self.elements:
+            v = self.get(el, attr)
+            if v:
+                out.append({"text": str(v), "frame": f})
         return out
 
-    def live_bpm(self, title):
-        """(deck index, current BPM) of the deck playing `title`."""
-        decks = self.read()
-        i, bpm = pick_deck_bpm(decks, title)
-        if i is None and time.time() - self.found_at > 2:
-            self._find()  # layout may have changed: rescan once
-            decks = self.read()
-            i, bpm = pick_deck_bpm(decks, title)
-        return i, bpm
+    def live_bpm(self, title, expected=None):
+        """(deck index 0/1 or None, current BPM or None) for the deck playing `title`."""
+        if not self.elements or time.time() - self.found_at > REFIND_EVERY:
+            self._find()
+        bpm, frame, info = pick_bpm(self._items(), title, expected)
+        if bpm is None and time.time() - self.found_at > 1.5:
+            self._find()  # a track was just loaded or the layout changed
+            bpm, frame, info = pick_bpm(self._items(), title, expected)
+        self.info = info
+        deck = None
+        if frame and self.window:
+            wx, _, ww, _ = self.window
+            deck = 0 if frame[0] + frame[2] / 2 < wx + ww / 2 else 1
+        return deck, bpm

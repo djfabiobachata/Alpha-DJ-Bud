@@ -565,14 +565,26 @@ class MusicAppFallbackTest(unittest.TestCase):
 
 
 class LiveBpmTest(unittest.TestCase):
-    def test_pick_deck_by_title(self):
-        from alpha_dj_bud.deck_reader import pick_deck_bpm, parse_bpm
-        decks = [{"texts": ["Crazy", "DJ Nico & Mayinbito"], "bpms": [124.5], "pitch": -1.2},
-                 {"texts": ["Es Evidente", "Akai Rojas"], "bpms": [126.0], "pitch": 0.0}]
-        self.assertEqual(pick_deck_bpm(decks, "Es Evidente"), (1, 126.0))
-        self.assertEqual(pick_deck_bpm(decks, "Crazy"), (0, 124.5))
-        self.assertEqual(pick_deck_bpm(decks, "Other"), (None, None))
-        self.assertEqual((parse_bpm("126.0"), parse_bpm("--"), parse_bpm("0.0 %")), (126.0, None, None))
+    def test_bpm_found_next_to_the_title_in_any_layout(self):
+        from alpha_dj_bud.deck_reader import pick_bpm, bpm_values
+        it = lambda text, x, y, w=120, h=20: {"text": text, "frame": (x, y, w, h)}
+        # layout A (this Mac): title on top, BPM button in the mixer below
+        a = [it("Crazy", 97, 226, 500), it("DJ Nico & Mayinbito", 97, 245, 400), it("126.0", 610, 240, 60),
+             it("124.5", 88, 328, 74), it("0.0 %", 88, 348, 74), it("-03:24", 611, 226),
+             it("Es Evidente", 900, 226, 400), it("128.0", 1380, 240, 60)]
+        self.assertEqual(pick_bpm(a, "Crazy", 126.0)[0], 126.0)       # the closest one
+        self.assertEqual(pick_bpm(a, "Es Evidente", 126.0)[0], 128.0)
+        # layout B (laptop): decks stacked, BPM in a text with the artist, title shortened
+        b = [it("Amantes - Remix Versi…", 40, 600), it("EKA · 120.3 BPM", 40, 622),
+             it("16", 300, 610), it("Otra Canción", 40, 700), it("118.0", 300, 720)]
+        self.assertEqual(pick_bpm(b, "Amantes - Remix Version Extended", 118.0)[0], 120.3)
+        # no title on screen / implausible values
+        self.assertEqual(pick_bpm(b, "Missing", 118.0)[2], "title not found")
+        c = [it("Amantes", 0, 0), it("12.5", 10, 0), it("240.0", 900, 900)]
+        self.assertEqual(pick_bpm(c, "Amantes", 118.0)[2], "title found, no BPM near it")
+        self.assertEqual(bpm_values("126.0 BPM"), [(126.0, True)])
+        self.assertEqual(bpm_values("126"), [(126.0, False)])
+        self.assertEqual(bpm_values("0.0 %"), [])
 
     def test_suggestions_follow_the_tempo_set_in_djay(self):
         tmp = tempfile.mkdtemp()

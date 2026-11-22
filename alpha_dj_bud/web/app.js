@@ -377,7 +377,9 @@ $("btnSettings").onclick = () => {
   $("optComments").checked = S.keyFromComments; $("optAutoGenre").checked = S.autoGenre;
   $("optLiveBpm").checked = S.liveBpm !== false;
   const ls = S.liveStatus || {};
-  $("liveInfo").textContent = S.liveBpm === false ? "" : ls.ok ? t("live.ok") : ls.error ? t("live.err." + ls.error) : "";
+  $("liveInfo").textContent = S.liveBpm === false ? "" : ls.ok ? t("live.ok") + " · " + ls.bpm.toFixed(1) + " BPM"
+    : ls.error ? t("live.err." + ls.error)
+    : ls.info ? t("live.info", { title: ls.title || "", info: t("live.why." + (ls.info === "title not found" ? "noTitle" : "noBpm")) }) : "";
   $("optDb").value = "";
   $("dbInfo").textContent = (S.db.path ? t("set.inUse", { path: S.db.path, n: S.db.tracks }) : t("set.noDb")) +
     "\n" + (S.music && S.music.ok ? t("set.music", { n: S.music.tracks })

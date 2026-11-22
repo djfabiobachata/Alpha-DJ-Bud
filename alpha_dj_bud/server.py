@@ -241,8 +241,9 @@ class AppState:
                 if not self.settings.get("liveBpm", True) or track is None:
                     time.sleep(2)
                     continue
-                deck, bpm = reader.live_bpm(track.djay_title)
-                self.live_status = {"ok": True, "error": None}
+                deck, bpm = reader.live_bpm(track.djay_title, expected=track.bpm)
+                self.live_status = {"ok": bpm is not None, "error": None, "info": reader.info,
+                                    "bpm": bpm, "title": track.djay_title}
                 if bpm and track.bpm and not (0.5 * track.bpm <= bpm <= 2.0 * track.bpm):
                     bpm = None  # not plausible for this track: ignore
                 old = self.live.get("bpm") if self.live.get("track") == tid else None
