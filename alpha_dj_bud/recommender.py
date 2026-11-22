@@ -44,7 +44,8 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
     variety = max(0.0, min(1.0, float(opts.get("variety", 50)) / 100.0))
     fresh = brain.freshness(genre, current, set_id) if (brain and variety) else {}
 
-    out = []
+    out, extra = [], []   # extra: outside the tolerance, only for the up/down picks
+    reach = max(tol, MAX_BPM_STEP)
     for tid in pool_ids:
         if tid == current.id or tid in hidden:
             continue
@@ -62,7 +63,8 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
             stats["key"] += 1
             continue
         d = bpm_delta(current.bpm, t.bpm, opts["halfDouble"])
-        if abs(d) > tol + 0.05:
+        outside = abs(d) > tol + 0.05
+        if outside and (abs(d) > reach + 0.05 or abs(d) < MIN_BPM_STEP - 0.05):
             stats["bpm"] += 1
             continue
         mine = artists.artist_set(t.artist, t.title)
@@ -72,7 +74,7 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
 
         key_s = camelot.RELATION_BASE_SCORE[rel]
         # BPM closeness counts less than the key: the whole ± range stays useful
-        bpm_s = 1.0 - 0.5 * min(1.0, abs(d) / max(tol, 0.5))
+        bpm_s = 1.0 - 0.5 * min(1.0, abs(d) / max(tol, abs(d), 0.5))
         learned, reasons = brain.score(genre, current, t, rel) if brain else (0.5, [])
         score = (1 - w_learn) * (0.75 * key_s + 0.25 * bpm_s) + w_learn * learned
         if variety:
@@ -87,7 +89,7 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
             "score": round(score * 100),
             "reasons": reasons,
         })
-        out.append(item)
+        (extra if outside else out).append(item)
 
     out.sort(key=lambda x: (-x["score"], abs(x["bpmDelta"]), x["title"].lower()))
     # one track per artist at the top; the artist's other tracks follow later
@@ -101,23 +103,37 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
             if mine:
                 seen.append(mine)
     out = first + later
-    out = _bpm_picks(out, tol)
-    return out[: int(opts["limit"])], stats
+    if extra:
+        stats["bpm"] += len(extra)
+    out = _bpm_picks(out, extra)
+    limit = int(opts["limit"])
+    head = out[:limit]
+    # an up/down pick always shows, even when the list is short or long
+    for x in out[limit:]:
+        if x.get("bpmTag"):
+            head.insert(min(len(head), 5), x)
+    return head[: max(limit, len(head))], stats
 
 
-MIN_BPM_STEP = 4.0  # a "go up / go down" pick moves the BPM by at least this much
+MIN_BPM_STEP = 4.0   # an up / down pick moves the BPM by at least 4 BPM...
+MAX_BPM_STEP = 10.0  # ...and at most 10 BPM, in every genre (not the genre's tolerance)
 
 
-def _bpm_picks(items, tol):
-    """Keep the 3 best suggestions on top, then put the best track to go UP
-    (position 4) and the best to go DOWN (position 5) in BPM, chosen among
-    the others, so the list also covers the whole BPM range."""
-    step = MIN_BPM_STEP - 0.05  # at least 4 BPM up or down
+def _bpm_picks(items, extra=()):
+    """Keep the 3 best suggestions on top, then the track to go UP (4th) and
+    to go DOWN (5th) in BPM. These two ignore the genre's BPM tolerance: they
+    are chosen between 4 and 10 BPM away, the closest to 4 first (4, then 5,
+    ...), best score on a tie, among the tracks not already in the top 3."""
     top, rest = items[:3], items[3:]
-    up = next((x for x in rest if x["bpmDelta"] >= step), None)
-    down = next((x for x in rest if x["bpmDelta"] <= -step), None)
+    pool = rest + list(extra)
+
+    def pick(sign):
+        c = [x for x in pool if MIN_BPM_STEP - 0.05 <= sign * x["bpmDelta"] <= MAX_BPM_STEP + 0.05]
+        c.sort(key=lambda x: (round(abs(x["bpmDelta"])), -x["score"]))
+        return c[0] if c else None
+
     picks = []
-    for x, tag in ((up, "up"), (down, "down")):
+    for x, tag in ((pick(1), "up"), (pick(-1), "down")):
         if x is not None:
             x["bpmTag"] = tag
             picks.append(x)

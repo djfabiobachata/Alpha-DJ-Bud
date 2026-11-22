@@ -476,10 +476,20 @@ class V19Test(unittest.TestCase):
             if x.get("bpmTag"):
                 self.assertIn(x, out[3:5])                     # only at positions 4-5
                 self.assertGreaterEqual(abs(x["bpmDelta"]), 4)  # at least 4 BPM
-        # a track 4 BPM away outside the top 3 gets the label
-        out2, _ = recommender.recommend(lib, lib.get("t01"), lib.tracks_in("F-BACHATA"), [], None,
-                                        "salsa", {"variety": 0})
-        self.assertTrue(all(abs(x["bpmDelta"]) >= 4 for x in out2 if x.get("bpmTag")))
+        # the picks ignore the genre tolerance: 4..10 BPM, closest to 4 first
+        from alpha_dj_bud.djay_library import Track
+        for tid, bpm, key in (("x5", 133.0, "3A"), ("x7", 135.0, "3A"), ("x11", 139.5, "3A"),
+                              ("d6", 122.0, "4A"), ("d9", 119.0, "4A")):
+            lib.tracks[tid] = Track(tid, "Demo " + tid, "Artist " + tid, bpm, key, 200.0)
+        pool = lib.tracks_in("F-BACHATA") + ["x5", "x7", "x11", "d6", "d9"]
+        out3, _ = recommender.recommend(lib, lib.get("t01"), pool, [], None, "bachata", {"variety": 0})
+        tags = {x.get("bpmTag"): x for x in out3 if x.get("bpmTag")}
+        self.assertEqual(tags["up"]["id"], "x5")      # +5 (bachata ±4 doesn't matter), not +7
+        self.assertEqual(tags["down"]["id"], "d6")    # -6, the closest available going down
+        self.assertEqual(out3[3]["bpmTag"], "up")
+        self.assertEqual(out3[4]["bpmTag"], "down")
+        self.assertNotIn("x11", [x["id"] for x in out3])   # +11.5: beyond 10
+        self.assertNotIn("x7", [x["id"] for x in out3])    # outside tolerance and not the pick
 
     def test_genre_buttons_switch_the_night(self):
         st, _ = self._state()

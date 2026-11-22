@@ -24,7 +24,7 @@ Assistente per DJ che suona con **djay Pro su Mac** e consiglia in tempo reale i
 3. **Consiglia i prossimi brani** della cartella scelta, con queste regole:
    - **Key (Camelot Wheel)**. Esempio con 3A in riproduzione: **3A, 3B, 2A, 4A** e **9A, 9B** (salto di 6). Vale allo stesso modo per le key B.
    - **BPM**: entro una tolleranza **impostata per ogni genere** in ⚙ Impostazioni (di base Bachata ±4, Salsa ±6, Zouk ±10).
-   - **Salire / scendere di BPM**: dopo i 3 consigli migliori, alle posizioni 4 e 5 trovi il brano migliore **per salire** (etichetta arancione) e quello **per scendere** (etichetta blu) di BPM, con almeno **4 BPM** di differenza dal brano in riproduzione, così puoi guidare l'energia del set.
+   - **Salire / scendere di BPM**: dopo i 3 consigli migliori, alle posizioni 4 e 5 trovi il brano migliore **per salire** (etichetta arancione) e quello **per scendere** (etichetta blu) di BPM. Questi due non seguono la tolleranza del genere: in tutti gli stili sono **tra 4 e 10 BPM** di differenza dal brano in riproduzione, il più vicino a 4 per primo (4, poi 5, …), così puoi guidare l'energia del set.
    - **Mai lo stesso artista di seguito.** Riconosce anche featuring e collaborazioni ("Romeo Santos & Drake", "feat. Romeo Santos"...). Puoi estendere la regola agli ultimi N brani.
    - Esclude i brani già suonati nel set.
    - **Varietà da una serata all'altra**: se suoni la stessa hit venerdì e sabato, i consigli dopo quel brano cambiano. I brani che ci hai messo dopo di recente, e quelli già proposti allora, scendono in classifica. Durante lo stesso set la lista resta stabile. Si regola in ⚙ Impostazioni → Varietà dei consigli (Spenta / Bassa / Media / Alta).
@@ -123,7 +123,7 @@ Bud Brain è la parte dell'app che **impara i tuoi gusti**. Tutto resta sul tuo 
 2. **Punteggio base**: quanto è buona la relazione di key (stessa key la migliore, poi relativa / ±1, poi +6) e quanto sono vicini i BPM.
 3. **Punteggio imparato**: la tabella qui sopra, mescolata al punteggio base. Il suo peso cresce con la **Fiducia**.
 4. **Varietà**: una piccola rotazione da una serata all'altra, stabile durante lo stesso set.
-5. **Ordine**: prima i 3 consigli migliori, poi il brano migliore per salire (4°) e per scendere (5°) di BPM, poi gli altri.
+5. **Ordine**: prima i 3 consigli migliori, poi il brano per salire (4°) e per scendere (5°) di BPM (tra 4 e 10 BPM, in ogni genere), poi gli altri.
 
 **Le due manopole**
 
