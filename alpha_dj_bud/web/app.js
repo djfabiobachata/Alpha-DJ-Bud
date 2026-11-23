@@ -65,7 +65,9 @@ const reasonText = (r) => t("why." + r.code, { n: r.n });
 
 function render(s) {
   S = s;
+  if (setApp(s.software)) setLanguage(s.language || LANG);
   if (s.language && s.language !== LANG) setLanguage(s.language);
+  showPicker(s);
   $("ver").textContent = "v" + s.app.version;
   const up = s.update || {};
   $("btnUpdate").hidden = !up.available;
@@ -76,9 +78,11 @@ function render(s) {
   const db = s.db;
   const gname = genreName(s.genre);
   $("ledDjay").className = "led " + (db.ok ? "on" : "err");
+  $("ledAppName").textContent = (APP.id === "djay" ? "djay" : APP.name.split(" ")[0]).toUpperCase();
   $("ledBrain").className = "led purple" + (s.brain.transitions ? " on" : "");
   let status;
-  if (!db.ok) status = "⚠ " + (db.error === "notFound" ? t("status.notFound") : (db.error || t("status.noLib")));
+  if (s.software && !s.software.chosen) status = t("status.chooseSoftware");
+  else if (!db.ok) status = "⚠ " + (db.error === "notFound" ? t("status.notFound") : (db.error || t("status.noLib")));
   else if (!s.playlistByGenre[s.genre]) status = t("status.choose", { genre: gname });
   else if (!s.current) status = t("status.lib", { n: db.tracks });
   else status = t("status.playing", { genre: gname.toUpperCase(), pool: s.poolSize, played: s.played.length });
@@ -109,7 +113,7 @@ function render(s) {
   const origTxt = c && c.bpmLive && c.bpmAnalyzed && Math.abs(c.bpmAnalyzed - c.bpm) >= 0.05
     ? t("live.orig", { orig: c.bpmAnalyzed.toFixed(1) }) : "";
   $("nowDeck").textContent = [deckTxt, origTxt].filter(Boolean).join(" · ");
-  $("nowSource").textContent = c ? (c.source === "djay" ? t("now.fromDjay") : t("now.manual")) + (c.inPool ? "" : t("now.outside")) : "";
+  $("nowSource").textContent = c ? (c.source === "app" ? t("now.fromDjay") : t("now.manual")) + (c.inPool ? "" : t("now.outside")) : "";
   drawWheel(c && c.key);
 
   renderSuggestions(s);
@@ -165,7 +169,7 @@ function renderSuggestions(s) {
 }
 
 function fillPlaylists(sel, playlists, value) {
-  const groups = [["djay", t("grp.djay")], ["music", t("grp.music")], ["files", t("grp.files")]];
+  const groups = [["app", APP.name], ["music", t("grp.music")], ["files", t("grp.files")]];
   const sig = LANG + JSON.stringify(playlists.map((p) => [p.id, p.name, p.count, p.depth, p.group]));
   if (sel.dataset.sig !== sig) {
     const opt = (p) => {
@@ -175,7 +179,7 @@ function fillPlaylists(sel, playlists, value) {
     };
     let html = `<option value="">${esc(t("setup.choose"))}</option>`;
     for (const [g, label] of groups) {
-      const items = playlists.filter((p) => (p.group || "djay") === g);
+      const items = playlists.filter((p) => (p.group || "app") === g);
       if (items.length) html += `<optgroup label="${esc(label)}">${items.map(opt).join("")}</optgroup>`;
     }
     sel.innerHTML = html;
@@ -232,7 +236,63 @@ $("nextList").onclick = (e) => {
   else if (b.classList.contains("hide")) act("hide", { id });
 };
 
-/* ---------------- drag a suggestion onto a djay deck ---------------- */
+/* ---------------- first start: which DJ software ---------------- */
+let swChoice = null, swDetected = null;
+async function showPicker(s) {
+  const sw = s.software;
+  const open = !!(sw && !sw.chosen);
+  $("swPicker").hidden = !open;
+  if (!open) return;
+  if (swDetected === null) {
+    swDetected = {};
+    try { swDetected = await api("software"); } catch (e) {}
+    if (!swChoice) swChoice = (sw.list.find((x) => swDetected[x.id]) || {}).id || sw.id;
+  }
+  $("swCards").innerHTML = sw.list.map((x) =>
+    `<button class="swcard${swDetected[x.id] ? " found" : ""}${x.id === swChoice ? " on" : ""}" data-sw="${x.id}">` +
+    `<b>${esc(x.name)}</b><small>${esc(swDetected[x.id] ? t("sw.found") : t("sw.notFound"))}</small></button>`).join("");
+  $("btnSwStart").disabled = !swChoice;
+}
+$("swCards").onclick = (e) => {
+  const b = e.target.closest(".swcard");
+  if (!b) return;
+  swChoice = b.dataset.sw;
+  if (S) showPicker(S);
+};
+$("btnSwStart").onclick = async () => {
+  if (!swChoice) return;
+  const name = (S.software.list.find((x) => x.id === swChoice) || {}).name || swChoice;
+  $("swPicker").hidden = true;
+  await act("software", { id: swChoice }, t("sw.changed", { name }));
+};
+
+function renderSoftwareSettings() {
+  const sw = S.software;
+  fillSelect($("optSoftware"), sw.list.map((x) => [x.id, x.name]), sw.id);
+  $("optSoftware").value = sw.id;
+  $("optTraktorPort").value = sw.traktorPort || 8000;
+  updateSoftwareHelp();
+}
+function updateSoftwareHelp() {
+  const sw = S.software, id = $("optSoftware").value;
+  const name = (sw.list.find((x) => x.id === id) || {}).name || id;
+  $("swHelp").textContent = t("sw.help." + id, { port: $("optTraktorPort").value || 8000 });
+  $("rowTraktorPort").hidden = id !== "traktor";
+  let st = "";
+  if (id === sw.id && id === "traktor" && sw.broadcast) {
+    const b = sw.broadcast;
+    st = b.error ? t("sw.bc.error", { port: b.port }) : b.connected ? t("sw.bc.connected") : t("sw.bc.listening", { port: b.port });
+  }
+  if (id === sw.id && id === "rekordbox" && sw.xml) st = t("sw.rbXml");
+  $("swStatus").textContent = st;
+  $("optDb").placeholder = id === sw.id ? sw.hint : "";
+  $("optDb").disabled = id !== sw.id;
+  $("optDb").dataset.name = name;
+}
+$("optSoftware").onchange = updateSoftwareHelp;
+$("optTraktorPort").oninput = updateSoftwareHelp;
+
+/* ---------------- drag a suggestion onto a deck ---------------- */
 const nativeDrag = () => !!(window.pywebview && window.pywebview.api && window.pywebview.api.set_drag_rows);
 // Native window: macOS does the drag. The app needs to know where each row
 // is, so it can arm the drag even on the first click (window not active).
@@ -380,7 +440,8 @@ $("btnSettings").onclick = () => {
   $("liveInfo").textContent = S.liveBpm === false ? "" : ls.ok ? t("live.ok") + " · " + ls.bpm.toFixed(1) + " BPM"
     : ls.error ? t("live.err." + ls.error)
     : ls.info ? t("live.info", { title: ls.title || "", info: t("live.why." + (ls.info === "title not found" ? "noTitle" : "noBpm")) }) : "";
-  $("optDb").value = "";
+  $("optDb").value = (S.software && S.software.path) || "";
+  renderSoftwareSettings();
   $("dbInfo").textContent = (S.db.path ? t("set.inUse", { path: S.db.path, n: S.db.tracks }) : t("set.noDb")) +
     "\n" + (S.music && S.music.ok ? t("set.music", { n: S.music.tracks })
                                   : t("set.musicErr") + (S.music && S.music.error ? "\n→ " + S.music.error : ""));
@@ -404,10 +465,20 @@ $("btnSaveSettings").onclick = () => {
     liveBpm: $("optLiveBpm").checked,
     autoUpdateCheck: $("optAutoUpdate").checked,
   };
-  if ($("optDb").value.trim()) body.dbPath = $("optDb").value.trim();
+  const newSw = $("optSoftware").value;
+  if (newSw === S.software.id) {
+    if ($("optDb").value.trim() !== (S.software.path || "")) body.dbPath = $("optDb").value.trim();
+    if (newSw === "traktor") body.traktorPort = parseInt($("optTraktorPort").value, 10) || 8000;
+  }
   $("settings").hidden = true;
   setLanguage(body.language);
-  act("options", body, t("toast.saved"));
+  act("options", body, t("toast.saved")).then(() => {
+    if (newSw === S.software.id) return;
+    const name = $("optDb").dataset.name || newSw;
+    if (!confirm(t("sw.changeConfirm", { name }))) return;
+    toast(t("sw.restarting", { name }));
+    act("software", { id: newSw });
+  });
 };
 
 setLanguage("en");

@@ -2,13 +2,29 @@
 
 🇬🇧 **English** · 🇮🇹 [Italiano](README.it.md)
 
-A next-track assistant for DJs who play **Bachata, Salsa and Zouk** with **djay Pro on Mac**. It suggests the next tracks in real time.
+A next-track assistant for DJs who play **Bachata, Salsa and Zouk** on Mac with **djay Pro, VirtualDJ, rekordbox, Serato DJ (Lite / Pro) or Traktor Pro**. It suggests the next tracks in real time.
 
 The app is in **English** by default and can be switched to **Italian** or **Spanish** in ⚙ Settings → **Language**.
 
 ![Alpha DJ Bud](docs/screenshot-full.png)
 
+## Supported DJ software
+
+The first time you open Alpha DJ Bud it asks which DJ software you use (the ones with a library on the Mac are marked). The choice is saved; to change it later go to ⚙ Settings → **DJ software**: Bud restarts and loads the library of the new software. Each software keeps its own folder/playlist per genre, and what Bud Brain learned follows the audio files.
+
+| Software | Library and playlists | Track on air | What to do |
+|---|---|---|---|
+| **djay Pro** | `~/Music/djay/…/MediaLibrary.db` | `NowPlaying.txt` (1–2 s) | nothing |
+| **VirtualDJ** | `database.xml`, Lists (`MyLists`) and old `Playlists` in `~/Library/Application Support/VirtualDJ` (or `~/Documents/VirtualDJ`), plus the `database.xml` on external drives | the day's History file, written while you play | nothing |
+| **Serato DJ Lite / Pro** | `database V2` and crates in `~/Music/_Serato_` (and `_Serato_` on external drives); sub-crates become folders | the history session, written while you play | nothing |
+| **rekordbox 6 / 7** | `~/Library/Pioneer/rekordbox/master.db` (encrypted: the first time Bud installs the component to read it, internet needed) | the history in the database | nothing. If the database can't be opened: in rekordbox **File → Export Collection in xml format** and write that file in ⚙ Settings → library path (playlists only, no track on air) |
+| **Traktor Pro** | `collection.nml` in `~/Documents/Native Instruments/Traktor <version>` (Traktor saves it when it closes or with File → Save Collection) | **Broadcasting** | in Traktor, Preferences → **Broadcasting**: Address `localhost`, Port `8000`, Format Ogg Vorbis (lowest quality is fine), then switch on Broadcasting (antenna icon). Bud listens on that port and reads only title and artist |
+
+For every software: key and BPM come from the software's analysis (also Open Key, e.g. "6m", or musical keys like "Am"), drag works onto the deck's waveform like a drag from the Finder, and the live BPM is read from the software's window when it exposes it (otherwise Bud uses the analysed BPM). The Apple Music library and the folders on the Mac work the same with every software.
+
 ## What it does
+
+The description below uses djay as the example; with the other software everything works the same way, with the differences listed in the table above.
 
 1. **Connects to djay Pro automatically.** It reads djay's library (read-only, it never changes anything): `~/Music/djay/djay Media Library.djayMediaLibrary/MediaLibrary.db`.
    - **Now playing** comes from `NowPlaying.txt`, the file djay itself updates with the track on air, so it changes in about 1–2 seconds. If that file isn't there, Bud uses djay's history. If needed, you can set the playing track manually with the search on the right.
@@ -55,7 +71,7 @@ The app is in **English** by default and can be switched to **Italian** or **Spa
    - The installer needs internet once, to download the components.
    - If Python 3 is missing, open Terminal and run `xcode-select --install`, then run the installer again.
 3. The installer creates **Alpha DJ Bud.app** in your **Applications** folder (`~/Applications`), with its own name and icon, and opens it. Drag it to the Dock to keep it handy. After that you can delete the downloaded folder.
-4. Open djay Pro, choose the genre and folder in Alpha DJ Bud, and start playing.
+4. The first time, choose your DJ software. Then open it, choose the genre and folder in Alpha DJ Bud, and start playing.
 
 ### Updates
 
@@ -165,8 +181,14 @@ On a **mixed night**, if you play a track that sits in another genre's folder, B
 
 ```
 alpha_dj_bud/
+  software.py      the supported DJ software and how to open each library
+  library_base.py  what all libraries share (Apple Music, folders, files, now-playing matching)
   tsaf.py          decoder for djay's binary TSAF format
-  djay_library.py  folders, playlists, tracks, key/BPM, history (now playing)
+  djay_library.py  djay: folders, playlists, tracks, key/BPM, history (now playing)
+  virtualdj_library.py  VirtualDJ: database.xml, lists, history
+  serato_library.py     Serato: database V2, crates, history sessions
+  traktor_library.py    Traktor: collection.nml, history, Broadcasting receiver
+  rekordbox_library.py  rekordbox: master.db (SQLCipher) or exported XML
   camelot.py       Camelot rules and djay key → Camelot mapping
   artists.py       artist / featuring matching
   recommender.py   suggestion filters and scoring
@@ -181,7 +203,7 @@ alpha_dj_bud/
   web/             interface (HTML/CSS/JS, translations in i18n.js)
 assets/            app icon
 tools/make_icon.py draws the icon
-tests/             tests with a fake djay library
+tests/             tests with fake libraries of every software
 ```
 
 Tests: `python3 -m unittest discover -s tests -t .`
@@ -190,8 +212,10 @@ To add a language, copy the `en` block in `alpha_dj_bud/web/i18n.js`, translate 
 
 ## Known limits
 
-- **djay Pro for macOS** only (on Windows djay doesn't expose its data the same way).
-- djay's database format is undocumented. A djay update could change it; in that case the **DJAY** light turns red.
+- **Mac only**.
+- The library formats of these programs are not officially documented. An update could change them; in that case the light next to the software's name turns red.
+- **Traktor**: the track on air needs Broadcasting on (and Bud uses its port: Traktor can't broadcast to a real radio server at the same time); new tracks and playlists appear after Traktor saves its collection.
+- **rekordbox**: with an exported XML the track on air isn't available; set it with the search.
 - If djay doesn't write `NowPlaying.txt`, the playing track comes from djay's history, which djay doesn't update for every track.
 - If a drag doesn't start, the app shows a message with the reason: send it to support. Details are also in `~/Library/Application Support/Alpha DJ Bud/alpha-dj-bud.log` (lines starting with `[drag]`).
 - **Spotify, TIDAL, SoundCloud, Beatport and Apple Music streaming** playlists can't be read: djay doesn't save them on the Mac and those tracks have no file. Tracks djay has already analysed still appear in "All djay tracks".

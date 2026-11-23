@@ -33,6 +33,10 @@ _ENHARMONIC = {"c#": "db", "d#": "eb", "gb": "f#", "g#": "ab", "a#": "bb",
                "db": "c#", "eb": "d#", "ab": "g#", "bb": "a#", "f#": "gb"}
 
 _CAMELOT_RE = re.compile(r"^\s*(1[0-2]|0?[1-9])\s*([ABab])\b")
+_OPENKEY_RE = re.compile(r"^\s*(1[0-2]|0?[1-9])\s*([dmDM])\s*$")  # Open Key (Traktor): 1d = C, 1m = Am
+
+# Traktor's MUSICAL_KEY value: 0..11 = C..B major, 12..23 = Cm..Bm
+_CHROMATIC = ["c", "db", "d", "eb", "e", "f", "f#", "g", "ab", "a", "bb", "b"]
 
 # Relation labels, best first. Used for display and for learning.
 REL_SAME = "same"
@@ -58,13 +62,27 @@ def from_djay_index(idx):
     return None
 
 
+def from_traktor_index(idx):
+    try:
+        idx = int(idx)
+    except (TypeError, ValueError):
+        return None
+    if not 0 <= idx < 24:
+        return None
+    return parse(_CHROMATIC[idx % 12] + ("m" if idx >= 12 else ""))
+
+
 def parse(text):
-    """Parse '3A', '03a', 'Bbm', 'A#m', 'C' ... into a Camelot code, else None."""
+    """Parse '3A', '03a', '6m' (Open Key), 'Bbm', 'A#m', 'C' ... into a Camelot
+    code, else None."""
     if not text:
         return None
     m = _CAMELOT_RE.match(str(text))
     if m:
         return "%d%s" % (int(m.group(1)), m.group(2).upper())
+    m = _OPENKEY_RE.match(str(text))
+    if m:
+        return "%d%s" % (_wrap(int(m.group(1)) + 7), "A" if m.group(2).lower() == "m" else "B")
     t = str(text).strip().replace("♭", "b").replace("♯", "#")
     t = re.sub(r"\s*(min(or)?|moll)$", "m", t, flags=re.I)
     t = re.sub(r"\s*(maj(or)?|dur)$", "", t, flags=re.I)

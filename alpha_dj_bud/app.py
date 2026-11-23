@@ -100,9 +100,9 @@ def main(argv=None):
     url = "http://127.0.0.1:%d/" % httpd.server_address[1]
     print("Alpha DJ Bud running at", url)
     if state.library:
-        print("djay library:", state.library.path)
+        print("%s library:" % state.software(), state.library.path)
     else:
-        print("WARNING: djay library not found")
+        print("WARNING: DJ software library not found (or not chosen yet)")
 
     if args.no_window:
         _wait()
@@ -128,7 +128,7 @@ def main(argv=None):
             def _after_start():
                 try:
                     from . import native_drag
-                    native_drag.configure(state.home, state.track_file)
+                    native_drag.configure(state.home, state.track_file, state.software())
                     native_drag.install()
                 except Exception as e:
                     print("drag:", e)

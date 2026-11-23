@@ -42,10 +42,12 @@ def _log(*a):
 
 
 # -- configuration / state --------------------------------------------------
-def configure(home, resolver):
-    """resolver(track_id) -> file path. Remembers the working method in home."""
+def configure(home, resolver, software="djay"):
+    """resolver(track_id) -> file path. Remembers the method that works for
+    each DJ software in home."""
     _rows["resolver"] = resolver
-    _state["file"] = os.path.join(home, "drag-method.json")
+    name = "drag-method.json" if software == "djay" else "drag-method-%s.json" % software
+    _state["file"] = os.path.join(home, name)
     try:
         with open(_state["file"]) as f:
             m = json.load(f).get("method")

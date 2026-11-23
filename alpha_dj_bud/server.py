@@ -1,4 +1,5 @@
-"""Local HTTP server + background monitor of djay Pro."""
+"""Local HTTP server + background monitor of the DJ software (djay, VirtualDJ,
+rekordbox, Serato, Traktor)."""
 import json
 import mimetypes
 import os
@@ -8,8 +9,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, quote, urlparse
 
-from . import __version__, recommender
-from .djay_library import DjayLibrary, find_database
+from . import __version__, recommender, software
 from .learning import Brain
 
 GENRES = [
@@ -35,7 +35,7 @@ def app_home():
 
 def with_bpm(track, bpm):
     """Copy of `track` playing at `bpm` (the tempo set in djay)."""
-    from .djay_library import Track
+    from .library_base import Track
     t = Track(track.id, track.title, track.artist, bpm, track.key, track.duration,
               track.comments, track.genre, track.key_source)
     t.djay_title, t.djay_artist = track.djay_title, track.djay_artist
@@ -57,14 +57,19 @@ class AppState:
             "keyFromComments": False,
             "autoGenre": True,
             "autoUpdateCheck": True,
-            "liveBpm": True,        # follow the BPM set in djay (tempo / sync)
+            "liveBpm": True,        # follow the BPM set in the DJ software (tempo / sync)
+            "software": None,       # chosen at the first start: djay, virtualdj, ...
+            "libraryPaths": {},     # software -> library location (empty = automatic)
+            "playlistsBySoftware": {},  # software -> playlistByGenre
+            "traktorPort": 8000,    # Traktor Broadcasting -> Alpha DJ Bud
             "dbPath": db_path,
             "compact": False,
             "language": "en",
         }
         self._load_settings()
-        if db_path:
-            self.settings["dbPath"] = db_path
+        if db_path:   # --db (djay's MediaLibrary.db, also used by the tests)
+            self.settings["software"] = self.settings.get("software") or "djay"
+            self.settings["libraryPaths"][self.software()] = db_path
         self.brain = Brain(os.path.join(self.home, "brain.json"))
         self.library = None
         self.version = 0
@@ -92,6 +97,11 @@ class AppState:
             opts.update(saved.get("options") or {})
             self.settings.update(saved)
             self.settings["options"] = opts
+            if saved.get("dbPath") and not (saved.get("libraryPaths") or {}).get("djay"):
+                self.settings["libraryPaths"] = dict(saved.get("libraryPaths") or {}, djay=saved["dbPath"])
+            self.settings.pop("dbPath", None)
+            if "software" not in saved and saved.get("playlistByGenre"):
+                self.settings["software"] = None   # existing djay user: ask once, djay preselected
         except (OSError, ValueError):
             pass
 
@@ -104,13 +114,52 @@ class AppState:
                 f.write(data)
             os.replace(tmp, self.settings_path)
 
+    def software(self):
+        sw = self.settings.get("software")
+        return sw if sw in software.SOFTWARE else "djay"
+
     def _open_library(self):
-        path = find_database(self.settings.get("dbPath"))
+        old = getattr(self, "library", None)
+        if old is not None:
+            old.close()
+        self.library = None
+        if not self.settings.get("software"):
+            return                      # first start: the DJ chooses the software first
+        sw = self.software()
+        path = software.find(sw, (self.settings.get("libraryPaths") or {}).get(sw))
         if path:
-            self.library = DjayLibrary(path, self.settings.get("keyFromComments"))
-            self.library.refresh(force=True)
+            lib = software.open_library(sw, path, self.settings.get("keyFromComments"),
+                                        self.settings.get("traktorPort"))
+            lib.refresh(force=True)
+            if getattr(self, "music_data", None):
+                lib.apple_music = self.music_data
+            if getattr(self, "files_data", None):
+                lib.local_files = self.files_data
+            if lib.apple_music or lib.local_files:
+                lib.refresh(force=True)
+            self.library = lib
+
+    def choose_software(self, sw):
+        """Switch DJ software: remembers each software's playlists per genre."""
+        if sw not in software.SOFTWARE:
+            return {"ok": False, "code": "unknown"}
+        s = self.settings
+        old = s.get("software")
+        if old:
+            s.setdefault("playlistsBySoftware", {})[old] = s.get("playlistByGenre") or {}
+        s["playlistByGenre"] = dict((s.get("playlistsBySoftware") or {}).get(sw) or
+                                    (s.get("playlistByGenre") if old is None else {}) or {})
+        s["software"] = sw
+        self.save_settings()
+        restart = old is not None and old != sw and self.window is not None
+        if restart:
+            from . import updater
+            threading.Timer(0.8, updater.restart, args=(self.home,)).start()
         else:
-            self.library = None
+            self.new_set()
+            self._open_library()
+        self.version += 1
+        return {"ok": True, "restart": restart}
 
     # -- set / session -------------------------------------------------------
     def new_set(self, save=True):
@@ -179,6 +228,8 @@ class AppState:
     # -- background monitor ----------------------------------------------------
     def poll(self):
         if self.library is None:
+            if not self.settings.get("software"):
+                return
             self._open_library()
             if self.library is None:
                 return
@@ -195,7 +246,7 @@ class AppState:
         try:
             hist = self.library.history(since_unix=self.set_start - 6 * 3600, limit=30)
         except Exception as e:
-            self.library.error = "cannot read djay history: %s" % e
+            self.library.error = "cannot read the history: %s" % e
             return
         fresh = [h for h in hist if h["time"] > self.last_history_time]
         if fresh:
@@ -204,9 +255,9 @@ class AppState:
             during = [h for h in fresh if h["time"] >= self.set_start]
             if before and not during and self.current_id is None:
                 # track that was already playing when the set started
-                self.set_current(before[-1]["track_id"], "djay", learn=False, deck=before[-1]["deck"])
+                self.set_current(before[-1]["track_id"], "app", learn=False, deck=before[-1]["deck"])
             for h in during:
-                self.set_current(h["track_id"], "djay", deck=h["deck"])
+                self.set_current(h["track_id"], "app", deck=h["deck"])
         if changed:
             self.version += 1
 
@@ -217,6 +268,7 @@ class AppState:
             data = music_library.load()
             self.music = {"ok": True, "error": None, "tracks": len(data["tracks"]),
                           "playlists": len(data["playlists"]), "method": data.get("method")}
+            self.music_data = data
             if self.library:
                 with self.lock:
                     self.library.set_apple_music(data)
@@ -234,10 +286,10 @@ class AppState:
                     return
             time.sleep(every if self.music.get("ok") else 60)
 
-    # -- live BPM from djay's decks ---------------------------------------------
+    # -- live BPM from the DJ software's decks ------------------------------------
     def live_bpm_loop(self, interval=1.0):
         from .deck_reader import DeckReader, DeckReaderError
-        reader = DeckReader()
+        reader = DeckReader(software.bundles(self.software()))
         prompted = False
         while True:
             try:
@@ -281,9 +333,10 @@ class AppState:
         try:
             data = local_files.scan(folders, os.path.join(self.home, "files-cache.json"))
             self.files = {"ok": True, "tracks": len(data["files"]), "folders": len(folders), "scanning": False}
+            self.files_data = data if folders else None
             if self.library:
                 with self.lock:
-                    self.library.set_local_files(data if folders else None)
+                    self.library.set_local_files(self.files_data)
         except Exception as e:
             self.files = {"ok": False, "error": str(e), "tracks": 0, "scanning": False}
         self.version += 1
@@ -334,29 +387,30 @@ class AppState:
         return {"ok": True, "version": v}
 
     def _poll_now_playing(self):
-        """djay writes NowPlaying.txt with the track on air. When it exists and
-        is recent, it is the source of truth (history only as fallback)."""
+        """The track on air as the DJ software reports it (djay: NowPlaying.txt,
+        VirtualDJ / Serato / rekordbox: their live history, Traktor: Broadcasting).
+        When it is recent, it is the source of truth (history only as fallback)."""
         mtime, info = self.library.read_now_playing()
         if mtime is None or time.time() - mtime > 12 * 3600:
             self.np_source = False
             return False
         self.np_source = True
-        key = (info.get("title"), info.get("artist"))
+        key = (info.get("title"), info.get("artist"), info.get("path"), info.get("track_id"))
         if key == self._np_last:
             return True
         self._np_last = key
         tid = self.library.match_now_playing(info, set(self.pool()))
         if tid:
-            deck = None
+            deck = info.get("deck")
             try:
-                for h in reversed(self.library.history(limit=20)):
+                for h in ([] if deck is not None else reversed(self.library.history(limit=20))):
                     if h["track_id"] == tid:
                         deck = h["deck"]
                         break
             except Exception:
                 pass
             learn = mtime >= self.set_start or self.current_id is not None
-            self.set_current(tid, "djay", learn=learn, deck=deck)
+            self.set_current(tid, "app", learn=learn, deck=deck)
         else:
             print("now playing not in library:", key, file=sys.stderr)
             self.np_unmatched = {"title": info.get("title"), "artist": info.get("artist")}
@@ -400,7 +454,7 @@ class AppState:
                 cur["bpmLive"] = bool(live.get("bpm"))
             if cur:
                 cur["source"] = self.current_source
-                cur["deck"] = self.current_deck if self.current_source == "djay" else None
+                cur["deck"] = self.current_deck if self.current_source == "app" else None
                 cur["inPool"] = self.current_id in set(pool)
             return {
                 "app": {"name": "Alpha DJ Bud", "version": __version__},
@@ -436,6 +490,7 @@ class AppState:
                 "autoUpdateCheck": self.settings.get("autoUpdateCheck", True),
                 "compact": self.settings["compact"],
                 "hasWindow": self.window is not None,
+                "software": self.software_info(),
                 "db": {
                     "path": lib.path if lib else None,
                     "ok": bool(lib) and not lib.error,
@@ -443,6 +498,34 @@ class AppState:
                     "tracks": len(lib.tracks) if lib else 0,
                 },
             }
+
+    def software_info(self):
+        sw = self.software()
+        lib = self.library
+        info = {
+            "id": sw, "name": software.name(sw),
+            "chosen": bool(self.settings.get("software")),
+            "path": (self.settings.get("libraryPaths") or {}).get(sw) or "",
+            "hint": software.SOFTWARE[sw]["hint"],
+            "traktorPort": self.settings.get("traktorPort") or 8000,
+            "list": [{"id": k, "name": software.name(k)} for k in software.ORDER],
+        }
+        if sw == "traktor":
+            b = getattr(lib, "broadcast", None)
+            info["broadcast"] = dict(b.status, port=b.port) if b else None
+        if sw == "rekordbox" and lib is not None:
+            info["xml"] = lib.path.lower().endswith(".xml")
+        return info
+
+    def detect_software(self):
+        """Which DJ software have a library on this Mac (for the first start)."""
+        out = {}
+        for k in software.ORDER:
+            try:
+                out[k] = bool(software.find(k))
+            except Exception:
+                out[k] = False
+        return out
 
     def search(self, q, everywhere=False):
         lib = self.library
@@ -503,8 +586,19 @@ class AppState:
                     self.library.key_from_comments = s["keyFromComments"]
                     self.library.refresh(force=True)
                 if "dbPath" in body:
-                    s["dbPath"] = body["dbPath"] or None
+                    s.setdefault("libraryPaths", {})[self.software()] = body["dbPath"] or None
                     self._open_library()
+                if "traktorPort" in body:
+                    try:
+                        port = int(body["traktorPort"])
+                    except (TypeError, ValueError):
+                        port = 8000
+                    if 1024 <= port <= 65535 and port != s.get("traktorPort"):
+                        s["traktorPort"] = port
+                        if self.software() == "traktor":
+                            self._open_library()
+            elif name == "software":
+                return self.choose_software(body.get("id"))
             elif name == "folders":
                 folders = list(s.get("folders") or [])
                 add, rem = body.get("add"), body.get("remove")
@@ -518,6 +612,7 @@ class AppState:
                     folders.remove(rem)
                 s["folders"] = folders
                 if not folders and self.library:
+                    self.files_data = None
                     self.library.set_local_files(None)
                 self._files_wake.set()
             elif name == "music-retry":
@@ -646,6 +741,8 @@ def make_handler(state):
             if u.path == "/api/search":
                 q = parse_qs(u.query)
                 return self._send(200, state.search(q.get("q", [""])[0], q.get("all", ["0"])[0] == "1"))
+            if u.path == "/api/software":
+                return self._send(200, state.detect_software())
             if u.path == "/api/fileurl":
                 tid = parse_qs(u.query).get("id", [""])[0]
                 p = state.track_file(tid)

@@ -427,7 +427,7 @@ class AppleMusicMergeTest(unittest.TestCase):
         self.assertEqual(lib.file_path(ids[1]), f)       # draggable file
         tree = lib.tree()
         names = [(n["name"], n["depth"], n["group"]) for n in tree]
-        self.assertEqual(names[0], ("djay", 0, "djay"))           # all djay tracks first
+        self.assertEqual(names[0], ("djay", 0, "app"))            # all djay tracks first
         self.assertIn(("Musica", 0, "music"), names)               # whole Music library
         self.assertIn(("BCHTA", 1, "music"), names)
         self.assertEqual(set(lib.tracks_in("am:all")), set(ids))

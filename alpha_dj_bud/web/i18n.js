@@ -134,7 +134,7 @@ const I18N = {
     "set.tolGenre": "BPM tolerance (±) per genre",
     "grp.files": "Folders on the Mac",
     "fold.title": "FOLDERS ON THE MAC",
-    "fold.hint": "Like djay's Finder / My files source and USB drives: choose folders with your music; each sub-folder becomes a playlist. Key/BPM from djay's analysis or from the file tags/name.",
+    "fold.hint": "Choose folders with your music (also on USB drives); each sub-folder becomes a playlist. Key/BPM from djay's analysis or from the file tags/name.",
     "fold.add": "+ ADD FOLDER",
     "fold.none": "No folders yet",
     "fold.scanning": "Reading the files…",
@@ -155,6 +155,27 @@ const I18N = {
     "live.info": "\"{title}\": {info} — using the analysed BPM",
     "live.why.noTitle": "title not found in djay's window",
     "live.why.noBpm": "title found, but no BPM next to it (show the BPM on the deck in djay)",
+    "sw.title": "WHICH DJ SOFTWARE DO YOU USE?",
+    "sw.intro": "Alpha DJ Bud reads the library and the track on air from your DJ software. You can change it any time in ⚙ Settings.",
+    "sw.found": "✓ library found on this Mac",
+    "sw.notFound": "library not found on this Mac",
+    "sw.start": "START",
+    "sw.pick": "Choose a DJ software",
+    "set.software": "DJ software",
+    "sw.changeConfirm": "Switch to {name}? Alpha DJ Bud will restart and load the {name} library.",
+    "sw.restarting": "Restarting with {name}…",
+    "sw.changed": "Now following {name}",
+    "set.traktorPort": "Traktor Broadcasting port",
+    "sw.help.djay": "Bud reads djay's library, NowPlaying.txt and the history.",
+    "sw.help.virtualdj": "Bud reads VirtualDJ's database.xml, your Lists / Playlists and the History: the track on air appears when VirtualDJ adds it to the history.",
+    "sw.help.serato": "Serato DJ Lite and Pro: Bud reads ~/Music/_Serato_ (and the _Serato_ folder on your drives): crates, BPM, key. The track on air comes from Serato's history session.",
+    "sw.help.rekordbox": "rekordbox 6 / 7: the database is encrypted, so the first time Bud installs the component to read it (needs internet, it can take a minute). If it can't, in rekordbox choose File → Export Collection in xml format and write the path of that file above: playlists work, but the track on air doesn't (pick it with the search).",
+    "sw.help.traktor": "For the track on air, in Traktor open Preferences → Broadcasting: Address localhost, Port {port}, Format Ogg Vorbis (lowest quality is fine), then switch on Broadcasting (the antenna icon). Traktor writes its collection when it closes (or File → Save Collection): new tracks and playlists appear after that.",
+    "sw.bc.connected": "● Traktor Broadcasting connected",
+    "sw.bc.listening": "Waiting for Traktor Broadcasting on port {port}",
+    "sw.bc.error": "Port {port} is busy: choose another port",
+    "sw.rbXml": "Using an exported rekordbox.xml: the track on air isn't available, pick it with the search.",
+    "status.chooseSoftware": "Choose your DJ software to start",
   },
 
   it: {
@@ -289,7 +310,7 @@ const I18N = {
     "set.tolGenre": "Tolleranza BPM (±) per genere",
     "grp.files": "Cartelle sul Mac",
     "fold.title": "CARTELLE SUL MAC",
-    "fold.hint": "Come la sorgente Finder / I miei file di djay e le chiavette USB: scegli le cartelle con la tua musica; ogni sottocartella diventa una playlist. Key/BPM dall'analisi di djay o dai tag/nome del file.",
+    "fold.hint": "Scegli le cartelle con la tua musica (anche su chiavette USB); ogni sottocartella diventa una playlist. Key/BPM dall'analisi di djay o dai tag/nome del file.",
     "fold.add": "+ AGGIUNGI CARTELLA",
     "fold.none": "Nessuna cartella",
     "fold.scanning": "Lettura dei file…",
@@ -310,6 +331,27 @@ const I18N = {
     "live.info": "\"{title}\": {info} — uso il BPM analizzato",
     "live.why.noTitle": "titolo non trovato nella finestra di djay",
     "live.why.noBpm": "titolo trovato, ma nessun BPM vicino (mostra il BPM sul deck in djay)",
+    "sw.title": "QUALE SOFTWARE DA DJ USI?",
+    "sw.intro": "Alpha DJ Bud legge la libreria e il brano in onda dal tuo software da DJ. Puoi cambiarlo quando vuoi in ⚙ Impostazioni.",
+    "sw.found": "✓ libreria trovata su questo Mac",
+    "sw.notFound": "libreria non trovata su questo Mac",
+    "sw.start": "INIZIA",
+    "sw.pick": "Scegli un software da DJ",
+    "set.software": "Software da DJ",
+    "sw.changeConfirm": "Passare a {name}? Alpha DJ Bud si riavvia e carica la libreria di {name}.",
+    "sw.restarting": "Riavvio con {name}…",
+    "sw.changed": "Ora segue {name}",
+    "set.traktorPort": "Porta Broadcasting di Traktor",
+    "sw.help.djay": "Bud legge la libreria di djay, NowPlaying.txt e la cronologia.",
+    "sw.help.virtualdj": "Bud legge database.xml di VirtualDJ, le tue Liste / Playlist e la Cronologia (History): il brano in onda compare quando VirtualDJ lo aggiunge alla cronologia.",
+    "sw.help.serato": "Serato DJ Lite e Pro: Bud legge ~/Music/_Serato_ (e la cartella _Serato_ dei tuoi dischi): crate, BPM, key. Il brano in onda arriva dalla sessione della cronologia di Serato.",
+    "sw.help.rekordbox": "rekordbox 6 / 7: il database è criptato, quindi la prima volta Bud installa il componente per leggerlo (serve internet, può volerci un minuto). Se non ci riesce, in rekordbox scegli File → Esporta la collezione in formato xml e scrivi qui sopra il percorso di quel file: le playlist funzionano, il brano in onda no (sceglilo con la ricerca).",
+    "sw.help.traktor": "Per il brano in onda, in Traktor apri Preferences → Broadcasting: Address localhost, Port {port}, Format Ogg Vorbis (va bene la qualità più bassa), poi accendi il Broadcasting (l'icona dell'antenna). Traktor scrive la collezione quando si chiude (o File → Save Collection): i nuovi brani e playlist compaiono dopo.",
+    "sw.bc.connected": "● Broadcasting di Traktor collegato",
+    "sw.bc.listening": "In attesa del Broadcasting di Traktor sulla porta {port}",
+    "sw.bc.error": "La porta {port} è occupata: scegline un'altra",
+    "sw.rbXml": "Stai usando un rekordbox.xml esportato: il brano in onda non è disponibile, sceglilo con la ricerca.",
+    "status.chooseSoftware": "Scegli il tuo software da DJ per iniziare",
   },
 
   es: {
@@ -444,7 +486,7 @@ const I18N = {
     "set.tolGenre": "Tolerancia BPM (±) por género",
     "grp.files": "Carpetas del Mac",
     "fold.title": "CARPETAS DEL MAC",
-    "fold.hint": "Como la fuente Finder / Mis archivos de djay y las memorias USB: elige las carpetas con tu música; cada subcarpeta se convierte en una playlist. Key/BPM del análisis de djay o de las etiquetas/nombre del archivo.",
+    "fold.hint": "Elige las carpetas con tu música (también en memorias USB); cada subcarpeta se convierte en una playlist. Key/BPM del análisis de djay o de las etiquetas/nombre del archivo.",
     "fold.add": "+ AÑADIR CARPETA",
     "fold.none": "Ninguna carpeta",
     "fold.scanning": "Leyendo los archivos…",
@@ -465,14 +507,46 @@ const I18N = {
     "live.info": "\"{title}\": {info} — uso el BPM analizado",
     "live.why.noTitle": "título no encontrado en la ventana de djay",
     "live.why.noBpm": "título encontrado, pero sin BPM cerca (muestra el BPM en el deck de djay)",
+    "sw.title": "¿QUÉ SOFTWARE DE DJ USAS?",
+    "sw.intro": "Alpha DJ Bud lee la biblioteca y el tema que suena desde tu software de DJ. Puedes cambiarlo cuando quieras en ⚙ Ajustes.",
+    "sw.found": "✓ biblioteca encontrada en este Mac",
+    "sw.notFound": "biblioteca no encontrada en este Mac",
+    "sw.start": "EMPEZAR",
+    "sw.pick": "Elige un software de DJ",
+    "set.software": "Software de DJ",
+    "sw.changeConfirm": "¿Cambiar a {name}? Alpha DJ Bud se reinicia y carga la biblioteca de {name}.",
+    "sw.restarting": "Reiniciando con {name}…",
+    "sw.changed": "Ahora sigue {name}",
+    "set.traktorPort": "Puerto Broadcasting de Traktor",
+    "sw.help.djay": "Bud lee la biblioteca de djay, NowPlaying.txt y el historial.",
+    "sw.help.virtualdj": "Bud lee database.xml de VirtualDJ, tus Listas / Playlists y el Historial (History): el tema que suena aparece cuando VirtualDJ lo añade al historial.",
+    "sw.help.serato": "Serato DJ Lite y Pro: Bud lee ~/Music/_Serato_ (y la carpeta _Serato_ de tus discos): crates, BPM, key. El tema que suena viene de la sesión del historial de Serato.",
+    "sw.help.rekordbox": "rekordbox 6 / 7: la base de datos está cifrada, así que la primera vez Bud instala el componente para leerla (hace falta internet, puede tardar un minuto). Si no lo consigue, en rekordbox elige Archivo → Exportar colección en formato xml y escribe arriba la ruta de ese archivo: las playlists funcionan, el tema que suena no (elígelo con la búsqueda).",
+    "sw.help.traktor": "Para el tema que suena, en Traktor abre Preferences → Broadcasting: Address localhost, Port {port}, Format Ogg Vorbis (la calidad más baja va bien), luego activa el Broadcasting (el icono de la antena). Traktor escribe su colección al cerrarse (o File → Save Collection): los temas y playlists nuevos aparecen después.",
+    "sw.bc.connected": "● Broadcasting de Traktor conectado",
+    "sw.bc.listening": "Esperando el Broadcasting de Traktor en el puerto {port}",
+    "sw.bc.error": "El puerto {port} está ocupado: elige otro",
+    "sw.rbXml": "Estás usando un rekordbox.xml exportado: el tema que suena no está disponible, elígelo con la búsqueda.",
+    "status.chooseSoftware": "Elige tu software de DJ para empezar",
   },
 };
 
 let LANG = "en";
+// The texts are written for djay; with another DJ software its name is used instead.
+let APP = { id: "djay", name: "djay Pro" };
+function appName(s) {
+  if (APP.id === "djay" || typeof s !== "string") return s;
+  return s.replace(/djay Pro|djay/gi, (m) => (m === m.toUpperCase() ? APP.name.toUpperCase() : APP.name));
+}
 function t(key, vars) {
-  let s = (I18N[LANG] && I18N[LANG][key]) ?? I18N.en[key] ?? key;
+  let s = appName((I18N[LANG] && I18N[LANG][key]) ?? I18N.en[key] ?? key);
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.split("{" + k + "}").join(v);
   return s;
+}
+function setApp(sw) {
+  if (!sw || (sw.id === APP.id && sw.name === APP.name)) return false;
+  APP = { id: sw.id, name: sw.name };
+  return true;
 }
 function setLanguage(lang) {
   LANG = I18N[lang] ? lang : "en";

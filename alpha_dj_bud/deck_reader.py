@@ -1,4 +1,6 @@
-"""Read the BPM a track is actually playing at in djay (macOS Accessibility).
+"""Read the BPM a track is actually playing at in the DJ software (macOS
+Accessibility). Written for djay; also tried on the other software, which show
+the deck title and BPM the same way when their window exposes its texts.
 
 djay shows, for each loaded deck, the track title and its current BPM (it
 follows the tempo fader, SYNC and pitch). Every DJ uses a different layout,
@@ -96,7 +98,8 @@ def pick_bpm(items, title, expected=None):
 
 
 class DeckReader:
-    def __init__(self):
+    def __init__(self, bundles=("com.algoriddim.djay",)):
+        self.bundles = tuple(b.lower() for b in bundles)
         self.AS = None
         self.found_at = 0.0
         self.elements = []   # [(element, attribute, frame)]
@@ -139,7 +142,7 @@ class DeckReader:
             raise DeckReaderError("noPermission")
         pid = None
         for a in self.NSWorkspace.sharedWorkspace().runningApplications():
-            if (a.bundleIdentifier() or "").startswith("com.algoriddim.djay"):
+            if (a.bundleIdentifier() or "").lower().startswith(self.bundles):
                 pid = a.processIdentifier()
                 break
         if not pid:
