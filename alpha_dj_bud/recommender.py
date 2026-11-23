@@ -94,7 +94,13 @@ def recommend(library, current, pool_ids, played_ids, brain, genre, settings, hi
     out.sort(key=lambda x: (-x["score"], abs(x["bpmDelta"]), x["title"].lower()))
     # one track per artist at the top; the artist's other tracks follow later
     first, later, seen = [], [], []
-    for item in out:
+    enough = max(int(opts["limit"]), 5)
+    for i, item in enumerate(out):
+        if len(first) >= enough:
+            # the visible list is complete: the rest only feeds the up/down
+            # picks, which don't depend on this order (keeps big libraries fast)
+            later.extend(out[i:])
+            break
         mine = artists.artist_set(item["artist"], item["title"])
         if mine and any(artists.shares_artist(mine, a) for a in seen):
             later.append(item)

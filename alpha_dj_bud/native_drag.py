@@ -86,14 +86,6 @@ def status():
                     current_method=_state["method"])
 
 
-def is_installed():
-    return _installed["done"]
-
-
-def install_error():
-    return _installed["error"]
-
-
 # -- drag source ---------------------------------------------------------------
 def _make_source():
     import objc

@@ -152,7 +152,7 @@ class Track:
 
 class DjayLibrary:
     """Snapshot of the djay library. Call `refresh()` to reload when the file
-    changes; `now_playing()` is cheap and reads only the history."""
+    changes."""
 
     def __init__(self, path, key_from_comments=False):
         self.path = path
@@ -548,10 +548,6 @@ class DjayLibrary:
                         "times": [w for t, w in seq if t]})
         out.sort(key=lambda s: s["start"] or 0)
         return out
-
-    def now_playing(self, max_age_hours=12):
-        h = self.history(since_unix=time.time() - max_age_hours * 3600, limit=50)
-        return h[-1] if h else None
 
     def has_file(self, track_id):
         loc = self.locations.get(track_id)

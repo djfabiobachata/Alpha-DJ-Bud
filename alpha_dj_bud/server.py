@@ -48,6 +48,7 @@ class AppState:
         os.makedirs(self.home, exist_ok=True)
         self.settings_path = os.path.join(self.home, "settings.json")
         self.lock = threading.RLock()
+        self._save_lock = threading.Lock()
         self.settings = {
             "event": "bachata",
             "genre": "bachata",
@@ -95,10 +96,13 @@ class AppState:
             pass
 
     def save_settings(self):
-        tmp = self.settings_path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(self.settings, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, self.settings_path)
+        import tempfile
+        with self._save_lock:
+            data = json.dumps(self.settings, ensure_ascii=False, indent=2)
+            fd, tmp = tempfile.mkstemp(dir=self.home, suffix=".tmp")
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(data)
+            os.replace(tmp, self.settings_path)
 
     def _open_library(self):
         path = find_database(self.settings.get("dbPath"))
@@ -178,7 +182,8 @@ class AppState:
             self._open_library()
             if self.library is None:
                 return
-        changed = self.library.refresh()
+        with self.lock:  # never rebuild the library while a request is reading it
+            changed = self.library.refresh()
         np_active = self._poll_now_playing()
         if np_active:
             if changed:
@@ -444,7 +449,8 @@ class AppState:
         if not lib:
             return []
         q = (q or "").lower().strip()
-        ids = list(lib.tracks) if everywhere else self.pool()
+        with self.lock:
+            ids = list(lib.tracks) if everywhere else self.pool()
         out = []
         for tid in ids:
             t = lib.get(tid)
@@ -542,23 +548,6 @@ class AppState:
     def track_file(self, track_id):
         return self.library.file_path(track_id) if self.library else None
 
-    def native_drag(self, track_id):
-        """Arm a real macOS file drag (pywebview window only): the drag itself
-        starts on the next native 'mouse dragged' event (see native_drag.py)."""
-        path = self.track_file(track_id)
-        if not path:
-            return {"ok": False, "code": "noFile"}
-        if not os.path.exists(path):
-            return {"ok": False, "code": "missing", "path": path}
-        from . import native_drag
-        try:
-            if not native_drag.is_installed() and not native_drag.install():
-                return {"ok": False, "code": "failed", "detail": native_drag.install_error() or "not installed"}
-            native_drag.arm(path)
-            return {"ok": True}
-        except Exception as e:
-            return {"ok": False, "code": "failed", "detail": str(e)}
-
     # -- window position / size (one frame for the normal window, one for MINI) --
     DEFAULT_FRAMES = {"normal": (1080, 760), "mini": (300, 480)}
 
@@ -649,7 +638,11 @@ def make_handler(state):
         def do_GET(self):
             u = urlparse(self.path)
             if u.path == "/api/state":
-                return self._send(200, state.snapshot())
+                try:
+                    return self._send(200, state.snapshot())
+                except Exception as e:
+                    print("state:", repr(e), file=sys.stderr)
+                    return self._send(500, {"error": str(e)})
             if u.path == "/api/search":
                 q = parse_qs(u.query)
                 return self._send(200, state.search(q.get("q", [""])[0], q.get("all", ["0"])[0] == "1"))

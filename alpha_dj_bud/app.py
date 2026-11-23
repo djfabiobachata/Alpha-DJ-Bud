@@ -65,9 +65,6 @@ class JsApi:
     def __init__(self, state):
         self._state = state
 
-    def drag_track(self, track_id):
-        return self._state.native_drag(track_id)
-
     def drag_status(self):
         from . import native_drag
         return native_drag.status()

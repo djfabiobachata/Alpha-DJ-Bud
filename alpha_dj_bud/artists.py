@@ -2,6 +2,7 @@
 and 'Prince Royce x Romeo Santos' are all recognised as sharing an artist."""
 import re
 import unicodedata
+from functools import lru_cache
 
 _SEPARATORS = re.compile(
     r"\s*(?:,|&|\+|/|;|\bfeat\.?|\bft\.?|\bfeaturing\b|\bwith\b|\bcon\b|\bvs\.?|\bx\b|\by\b|\band\b|\be\b)\s*",
@@ -20,6 +21,11 @@ def _plain(s):
 
 def artist_set(artist, title=""):
     """Return the set of normalised individual artist names of a track."""
+    return set(_artist_set(artist or "", title or ""))
+
+
+@lru_cache(maxsize=65536)
+def _artist_set(artist, title):
     names = set()
     for part in _SEPARATORS.split(artist or ""):
         p = _plain(part)
@@ -30,7 +36,12 @@ def artist_set(artist, title=""):
             p = _plain(part)
             if len(p) >= 2:
                 names.add(p)
-    return names
+    return frozenset(names)
+
+
+@lru_cache(maxsize=8192)
+def _word(short):
+    return re.compile(r"\b%s\b" % re.escape(short))
 
 
 def shares_artist(a, b):
@@ -39,9 +50,14 @@ def shares_artist(a, b):
         return False
     if a & b:
         return True
+    return _shares_inside(frozenset(a), frozenset(b))
+
+
+@lru_cache(maxsize=262144)
+def _shares_inside(a, b):
     for x in a:
         for y in b:
             short, long_ = (x, y) if len(x) <= len(y) else (y, x)
-            if len(short) >= 5 and re.search(r"\b%s\b" % re.escape(short), long_):
+            if len(short) >= 5 and _word(short).search(long_):
                 return True
     return False

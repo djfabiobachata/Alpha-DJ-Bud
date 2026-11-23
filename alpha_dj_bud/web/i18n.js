@@ -3,7 +3,6 @@
 
 const I18N = {
   en: {
-    "lang.name": "English",
     "hdr.settings": "Settings",
     "hdr.mini": "Small window on top of djay",
     "setup.title": "NIGHT SETUP",
@@ -159,7 +158,6 @@ const I18N = {
   },
 
   it: {
-    "lang.name": "Italiano",
     "hdr.settings": "Impostazioni",
     "hdr.mini": "Finestra piccola sopra djay",
     "setup.title": "SETUP SERATA",
@@ -315,7 +313,6 @@ const I18N = {
   },
 
   es: {
-    "lang.name": "Español",
     "hdr.settings": "Ajustes",
     "hdr.mini": "Ventana pequeña encima de djay",
     "setup.title": "PREPARAR NOCHE",

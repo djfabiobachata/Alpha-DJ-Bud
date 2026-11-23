@@ -1,5 +1,5 @@
 """Draws the Alpha DJ Bud icon (PNG + macOS .icns)."""
-import io, math, struct, sys
+import io, struct, sys
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 S = 1024

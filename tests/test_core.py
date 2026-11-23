@@ -70,7 +70,7 @@ class LibraryTest(unittest.TestCase):
         self.assertNotIn("s01", folder)
 
     def test_now_playing(self):
-        np = self.lib.now_playing()
+        np = self.lib.history()[-1]
         self.assertEqual(np["track_id"], "t01")
         self.assertEqual(np["deck"], 1)
 
@@ -254,9 +254,6 @@ class MixedNightAndLoadTest(unittest.TestCase):
         self.assertTrue(os.path.isfile(path), path)
         self.assertEqual(st.track_file(sug[0]["id"]), path)
         self.assertIsNone(st.track_file("t11"))
-        # no native window here: drag reports an error instead of crashing
-        self.assertFalse(st.native_drag(sug[0]["id"])["ok"])
-        self.assertEqual(st.native_drag("t11")["code"], "noFile")
 
 
 class UpdaterTest(unittest.TestCase):
@@ -513,7 +510,7 @@ class V19Test(unittest.TestCase):
         self.assertEqual(st.window_frame("mini", screens)["w"], 260)  # but keeps its size
 
     def test_folders_source(self):
-        from alpha_dj_bud.local_files import scan, read_tags
+        from alpha_dj_bud.local_files import read_tags
         st, tmp = self._state()
         music = os.path.join(tmp, "Música DJ")
         os.makedirs(os.path.join(music, "Bachata 2026"))

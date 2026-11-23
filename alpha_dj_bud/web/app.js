@@ -233,7 +233,7 @@ $("nextList").onclick = (e) => {
 };
 
 /* ---------------- drag a suggestion onto a djay deck ---------------- */
-const nativeDrag = () => !!(window.pywebview && window.pywebview.api && window.pywebview.api.drag_track);
+const nativeDrag = () => !!(window.pywebview && window.pywebview.api && window.pywebview.api.set_drag_rows);
 // Native window: macOS does the drag. The app needs to know where each row
 // is, so it can arm the drag even on the first click (window not active).
 let rowsSig = "";
