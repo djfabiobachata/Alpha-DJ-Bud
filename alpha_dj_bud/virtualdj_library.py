@@ -84,6 +84,7 @@ class VirtualDJLibrary(BaseLibrary):
     def __init__(self, path, key_from_comments=False):
         super().__init__(path, key_from_comments)   # path = VirtualDJ home folder
         self._order = []
+        self._np_state = None
 
     def _databases(self):
         dbs = [os.path.join(self.path, "database.xml")]
@@ -199,19 +200,36 @@ class VirtualDJLibrary(BaseLibrary):
     def _history_files(self):
         h = os.path.join(self.path, "History")
         files = glob.glob(os.path.join(h, "*.m3u")) + glob.glob(os.path.join(h, "*", "*", "*.m3u"))
-        return sorted(files, key=lambda f: file_mtime(f))
+        # newest last; same time: the later date in the name wins
+        return sorted(files, key=lambda f: (file_mtime(f), os.path.basename(f)))
 
     def read_now_playing(self):
-        files = glob.glob(os.path.join(self.path, "History", "*.m3u"))
+        """The newest entry of the newest history file. VirtualDJ adds a track
+        after it has been audible for `historyDelay` seconds (45 by default), and
+        files older days in History/<year>/<month>/."""
+        files = self._history_files()
         if not files:
             return None, None
-        newest = max(files, key=file_mtime)
+        newest = files[-1]
+        mtime = file_mtime(newest)
+        prev = self._np_state
+        if prev and prev["file"] == newest and prev["mtime"] == mtime:
+            return prev["result"]                       # unchanged: nothing to parse
         entries = parse_m3u(newest)
+        if file_mtime(newest) != mtime:                 # VirtualDJ was writing it: next time
+            return prev["result"] if prev else (None, None)
+        if prev and prev["file"] == newest and len(entries) < prev["count"]:
+            return prev["result"]                       # half-written file: keep the last good one
         if not entries:
             return None, None
+        # the most recent play (by its play time when VirtualDJ writes it)
         last = entries[-1]
-        return file_mtime(newest), {"title": last["title"], "artist": last["artist"],
-                                    "path": last["path"]}
+        newest_t = max((e["time"] for e in entries if e["time"]), default=None)
+        if newest_t and (last["time"] or 0) < newest_t:
+            last = next(e for e in reversed(entries) if e["time"] == newest_t)
+        result = (mtime, {"title": last["title"], "artist": last["artist"], "path": last["path"]})
+        self._np_state = {"file": newest, "mtime": mtime, "count": len(entries), "result": result}
+        return result
 
     def history(self, since_unix=None, limit=200):
         out = []

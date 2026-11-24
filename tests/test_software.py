@@ -54,6 +54,55 @@ class VirtualDJTest(unittest.TestCase, ReaderChecks):
         self.assertEqual(lib.history_sessions()[0]["tracks"], [file_id(paths[2]), file_id(paths[3])])
 
 
+class VirtualDJNowPlayingTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.home, self.paths = fx.virtualdj(self.tmp)
+        self.lib = software.open_library("virtualdj", self.home)
+        self.lib.refresh(force=True)
+        self.hist = os.path.join(self.home, "History", "2026-11-23.m3u")
+
+    def now(self):
+        return self.lib.match_now_playing(self.lib.read_now_playing()[1])
+
+    def touch(self, path, t):
+        os.utime(path, (t, t))
+
+    def test_half_written_file_keeps_the_last_good_track(self):
+        self.assertEqual(self.now(), file_id(self.paths[3]))
+        with open(self.hist) as f:
+            full = f.read()
+        with open(self.hist, "w") as f:          # VirtualDJ rewriting: only the first entry so far
+            f.write(full.split("\n#EXTVDJ")[0] + "\n")
+        self.touch(self.hist, time.time() + 5)
+        self.assertEqual(self.now(), file_id(self.paths[3]))
+        fx.virtualdj_play(self.home, self.paths[0], TITLES[0], "Romeo Santos", 1764000500)
+        with open(self.hist, "w") as f:
+            f.write(full)
+        fx.virtualdj_play(self.home, self.paths[0], TITLES[0], "Romeo Santos", 1764000500)
+        self.touch(self.hist, time.time() + 10)
+        self.assertEqual(self.now(), file_id(self.paths[0]))
+
+    def test_newest_file_in_year_month_folder(self):
+        d = os.path.join(self.home, "History", "2026", "11")
+        os.makedirs(d)
+        newer = os.path.join(d, "2026-11-24.m3u")
+        with open(newer, "w") as f:
+            f.write("#EXTVDJ:<lastplaytime>1764100000</lastplaytime><artist>Willie Colón</artist>"
+                    "<title>Idilio</title>\n%s\n" % self.paths[4])
+        self.touch(newer, time.time() + 20)
+        self.assertEqual(self.now(), file_id(self.paths[4]))
+
+    def test_replayed_track_with_newer_play_time(self):
+        with open(self.hist) as f:
+            text = f.read()
+        text = text.replace("<lastplaytime>1764000000</lastplaytime>", "<lastplaytime>1764009999</lastplaytime>")
+        with open(self.hist, "w") as f:
+            f.write(text)
+        self.touch(self.hist, time.time() + 30)
+        self.assertEqual(self.now(), file_id(self.paths[2]))
+
+
 class SeratoTest(unittest.TestCase, ReaderChecks):
     def test_library_crates_and_sessions(self):
         tmp = tempfile.mkdtemp()
